@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            #registration {
+                width: 300px;
+            }
+            
+        </style>
+
+    </head>
+    <body>
+        <form id="registration">
+            <p class="input_title">Full Name:</p> <input type="text">
+            <p class="input_title">Email Address:</p> <input type="text"><br>
+            
+            <p class="input_title">Username:</p> <input type="text">
+            <p class="input_title">Password: </p> <input type="password">
+            <p class="input_title">Confirm Password:</p> <input type="password">
+
+            
+            <p class="input_title">Describe your level of CAD proficientcy:</p> 
+            <select>
+                <option>Please Choose one</option>
+                <option>I am a master at CAD</option>
+                <option>I am fairly skilled at CAD</option>
+                <option>I am familiar with CAD but not very good</option>
+                <option>What is CAD?</option>
+            </select><br>
+            
+            
+            <p class="input_title">Are you affiliated with RPI?</p>
+            
+            <input type="radio" name="rpi" value="yes" onchange="show()">Yes, I am affiliated with RPI<br>
+            <input type="radio" name="rpi" value="no" onchange="hide()">No, I am not affiliated with RPI <br><br>
+            
+            <div id="rpi_only">
+                <p class="input_title">Major:</p> <input type="text"><br>
+                <p class="input_title">Familiarity with Campus:</p>
+                <select>
+                    <option>Please Select One</option>
+                    <option>I extremely familiar with RPI's Campus </option>
+                    <option>I am fairly familiar with RPI's Campus</option>
+                    <option>I am not really familiar with RPI's Campus</option>
+                    <option>I am a freshman who is lost</option>
+                </select>
+            </div>
+        </form>
+        
+        
+        <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+        <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+        <script>  
+            function show(){
+                $("#rpi_only").show();
+            }
+            
+            function hide(){
+                $("#rpi_only").hide();
+            }
+            
+            hide();  
+        </script>
+
+    </body>
+</html>

@@ -1,0 +1,44 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="fb_style.css">
+    <script src="../js/lib/jquery.js"></script>
+  </head>
+
+  <body>
+    <form action="">
+
+      <p>Does the 3D generated model match your intentions? <br>
+      <input type="radio" name="correct" value="correct" > Matched my intentions exactly (no revisions required) <br>
+      <input type="radio" name="correct" value="revisons"> Did not match my intentions initially (revisions were required) <br></p>
+      <input type="radio" name="correct" value="failed">   Failed to match my intentions (even after revision) <br></p>
+
+      <hr>
+
+      <p>What is a good name for this model? <br>
+
+
+      <div id="rpi_affilate">
+
+      </div>
+    </form>
+  </body>
+
+</html>
+
+
+<script>
+
+
+  function show(id)
+  {
+    $("#"+id).show();
+  }
+
+  function hide(id)
+  {
+    $("#"+id).hide();
+  }
+  
+  
+</script>

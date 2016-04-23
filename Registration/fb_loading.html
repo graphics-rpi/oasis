@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="fb_style.css">
+    <script src="../js/lib/jquery.js"></script>
+  </head>
+  <body>
+
+  <form action="">
+    <p>Are you affiliated with Rensselaer Polytechnic Institute: <br>
+    <input type="radio" name="rpi_affilate" value="true" onchange="show('rpi_affilate')"> Yes <br>
+    <input type="radio" name="rpi_affilate" value="false" onchange="hide('rpi_affilate')"> No <br></p>
+
+    <div id="rpi_affilate" style="display:none;">
+      <p>How are you affiliated with RPI? &nbsp
+      <select name="affiliation" id="affiliation">
+        <option value="undergraduate">Undergraduate</option>
+        <option value="graduate">Graduate</option>
+        <option value="staff">Staff</option>
+        <option value="faculty">Faculty</option>
+      </select> </p>
+    </div>
+
+    <p>Years of formal education in architecture? <br>
+    <input type="number" min="0" max="100" name="arch_edu"><br></p>
+
+    <p>Years of formal education in visual arts? <br>
+    <input type="number" min="0" max="100" name="visual_edu"><br></p>
+
+    <p>Years of job experience in architecture? (including internships) <br>
+    <input type="number" min="0" max="100" name="arch_exp"><br></p>
+
+    <p>Years of job experience in visual arts? (including internships) <br>
+    <input type="number" min="0" max="100" name="visual_exp"><br></p>
+
+    <p>Have you used any of the following modeling software?
+    <div style="height: 6em; width: 12em; overflow: auto; border: 1px solid gray;";>
+      <input type="checkbox" name="software[]" value="sketchup"/> SketchUp <br>
+      <input type="checkbox" name="software[]" value="audocad"/> AutoCAD <br>
+      <input type="checkbox" name="software[]" value="rhino"/> Rhino <br>
+      <input type="checkbox" name="software[]" value="maya"/> Maya <br>
+      <input type="checkbox" name="software[]" value="3dsmax"/> 3DS Max <br>
+      <input type="checkbox" name="software[]" value="cinema4d"/> Cinema 4D <br>
+      <input type="checkbox" name="software[]" value="blender"/> Blender <br>
+      <input type="checkbox" name="software[]" value="revit"/> Revit <br>
+    </div>
+    </p>
+
+    <p>Have you used any other <i> unlisted </i> modeling software? <br>
+    <input type="text" name="other_software"> </p>
+    
+    <p>Years of experience with modeling softwares?<br>
+    <input type="number" min="0" max="100" name="software_exp"><br></p>
+
+    <p>Other relevant education or experiences? <br>
+    <input type="text" name="other_exp"> </p>
+
+    <p>Are you colorblind? (optional) <br>
+    <input type="radio" name="color_blind" value="true" > Yes <br>
+    <input type="radio" name="color_blind" value="false"> No <br></p>
+
+    <p>Is it okay if we follow up questions about model's created in our system? <br>
+    <input type="email" name="user_email" placeholder="joe@doe.com"> </p>
+
+  </form>
+</body>
+</html>
+
+
+<script>
+
+
+  function show(id)
+  {
+    $("#"+id).show();
+  }
+
+  function hide(id)
+  {
+    $("#"+id).hide();
+  }
+  
+  
+</script>

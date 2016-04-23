@@ -1,0 +1,52 @@
+<?php session_start(); 
+require_once('../php/user.php'); 
+require_once('../php/model.php'); 
+?>
+<head>
+<script src="/js/lib/jquery.js"></script>
+<link rel="stylesheet" type="text/css" href="/css/register.css">
+
+</head>
+
+<body>
+
+  <div id="register">
+    <h1>Register</h1>
+
+    <form action="/php/register.php" method="post"> 
+
+      <input name="email" type="text" placeholder="Username" />
+      <input name= "password1" type="password" placeholder="Create Password" />
+      <input name= "password2" type="password" placeholder="Retype Password" /><br>
+
+
+      <div style="text-align: center;">
+        <span style="font-size:60%;text-align: justify; text-justify: inter-word;">
+          <!--UPDATE ME-->
+	  This application is a research project for architecrual modeling and daylighting simulation. 
+          Those who participate in this study will have their feedback and designs recorded for future analysis. 
+
+
+We will use this information for
+          <a href="http://www.cs.rpi.edu/~cutler/">research</a> purposes. Your feedback is important to help us improve this tool.
+        </span><br>
+
+        </label><br>
+        <input type="checkbox" value="None" name="include" checked /><label for="include"> I Agree to Participate (Optional) </label>
+        <br> <br>
+      </div>
+
+      <input type="submit" value="Submit" />
+      <br> <br>
+      <center><input type="button" value="Already Registered?" onclick= 'location.href = "/pages/login_page.php"'/>
+      </center>
+      <?php if (isset($_SESSION['error'])){ echo $_SESSION['error']; }?>
+
+    </form>
+  </div>
+
+  <center><font color = "ffffff">Browers supported:</font> 
+  <br>
+  <img src="/images/chrome_icon.png"> <!--<img src="/images/firefox_icon.png">--> </center>
+
+</body>

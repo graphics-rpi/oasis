@@ -1,0 +1,65 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="fb_style.css">
+    <script src="../js/lib/jquery.js"></script>
+  </head>
+
+  <style>
+    #form_3d{display:none; }
+    #form_sim{display:none; }
+    label{ list-style-position: outside; }
+  </style>
+
+  <body>
+    <div id="form_3d">
+
+      <form name="3d" action="">
+
+        <p>Does the 3D generated model match your intentions?<br>
+        <input type="radio" name="correct" value="correct" > <label for="correct">Matched my intentions (<b>no</b> revisions required)</label><br>
+        <input type="radio" name="correct" value="revisons"> <label for="revisions">Matched my intentions (revisions <b>were</b> required) </label><br>
+        <input type="radio" name="correct" value="failed">   <label for="failed">Failed to match my intentions (even after revision)</label><br></p>
+
+        <hr>
+
+        <p>Describe your overall impression of the software for determining the interior vs exterior space in your designs?<br>
+        <textarea name="impression" > </textarea></p>
+        
+        <p>For the case when the system's interpretation of the interior/exterior of your design was <b>incorrect</b> where was the system wrong?<br>
+        <textarea name="failures" > </textarea></p>
+
+      </form>
+
+    </div>
+
+    <div id="form_sim">
+      <form  name="sim" action="">
+      
+        <p>Did you understand the results of the simulation, was there anything confusing or unclear<br>
+        <textarea name="impression" > </textarea></p>
+        
+        <p>Did the system allow you to create and test daylighting performance with respect to over or under illumination<br>
+        <textarea name="failures" > </textarea></p>
+
+      </form>
+    </div>
+
+  </body>
+
+</html>
+
+
+<script>
+
+  function show(id)
+  {
+    $("#"+id).show();
+  }
+
+  function hide(id)
+  {
+    $("#"+id).hide();
+  }
+
+</script>

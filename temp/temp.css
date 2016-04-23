@@ -1,0 +1,50 @@
+#container {
+/*
+    border: 5px solid #9ecae1;
+    width: 900px;
+    height: 900px;
+    padding: 10px;
+    background-color: #deebf7;
+*/
+/*    margin: 50px;*/
+}
+
+#content {
+    border: 5px solid #9ecae1;
+    width: 900px;
+    height: 1000px;
+    padding: 10px;
+    background-color: #deebf7;
+/*    margin: 50px;*/
+    margin: auto;
+    
+    margin-top: 50px;
+    
+/*
+    border: 5px solid #9ecae1;
+    width: 900px;
+    height: 1000px;
+    padding: 10px;
+    background-color: #deebf7;
+*/
+}
+
+.mtitle {
+    color:#3182bd;
+    font-size: 50px;
+    font-family: fantasy;
+    border-bottom:5px solid;
+    width: 70%;
+}
+
+.btn {
+    width: 200px;
+}
+
+.change_render {
+    margin-left: 5px;
+}
+
+#modelinfo a{
+    margin-top: 10px;
+}
