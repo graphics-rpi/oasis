@@ -22,7 +22,8 @@
 	<h1>User Output Viewer Alpha</h1>
 	<div id="container"> </div>
 	<script>
-    display_all_renov("mmespinoza1@gmail.com", 4);
+		main();
+        //display_all_renov("mmespinoza1@gmail.com", 4);
 		// raphael_model_viwer("container",284,200); // This is my apt model
 	</script>
 </body>
