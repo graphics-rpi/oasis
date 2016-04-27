@@ -7,6 +7,8 @@ require_once('config.inc.php');
 require_once('user.php');
 require_once('model.php');
 
+sleep(1);
+
 // Get user object and username and session model
 $userobj       = unserialize($_SESSION['user']);
 $username      = $userobj->username;

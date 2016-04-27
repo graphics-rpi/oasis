@@ -946,13 +946,13 @@ function sketching_ribbon_handler(event_str)
     // Checking if we have a file stored in our slow folder
 
     window.ribbon1.disableRibbon();
-
-    $.getJSON(
-      "../php/check_slow_folder.php",
-      {},
-      function(e)
-      {
-        // alert(e.stat);
+    
+    $.ajax({
+      url: "../php/check_slow_folder.php",
+      dataType: 'json',
+      data: {},
+      success: function(e) {
+         // alert(e.stat);
         // Callback function after checking if there is output for us in the slow folder
         var stat = e.stat; // "true" or "false"
 
@@ -1000,9 +1000,190 @@ function sketching_ribbon_handler(event_str)
         {
           alert("Bug: Unreconized Status: " + stat);
         }
-
-      });
+      }
+    });
   } //button-daylight-task
+  
+  if (event_str == 'button-solstice')
+  {
+    // Checking if we have a file stored in our slow folder
+
+    window.ribbon1.disableRibbon();
+    $.ajax({
+      url: "../php/check_slow_folder.php",
+      dataType: 'json',
+      async:false,
+      data: {},
+      success: function(e) {
+         // alert(e.stat);
+        // Callback function after checking if there is output for us in the slow folder
+        var stat = e.stat; // "true" or "false"
+
+        if (stat == "ready")
+        {
+          window.ribbon1.enableRibbon();
+          // Tell the server to save this model
+          $.post("../php/task_daylight.php",{
+              month: 12,
+              day: 21,
+              hour: 12,
+              minute: 00,
+              tz_sign: -1,
+              tz_hr : 5,
+              tz_min: 00,
+              weather: "CLEAR",
+              t_called : Math.floor(new Date().getTime() / 1000)
+            },function(){
+              sketching_ribbon_handler('button-daylight-refresh');
+            }
+          );
+          
+          // Tell the server to save this model
+          $.post("../php/task_daylight.php",{
+              month: 06,
+              day: 20,
+              hour: 12,
+              minute: 00,
+              tz_sign: -1,
+              tz_hr : 5,
+              tz_min: 00,
+              weather: "CLEAR",
+              t_called : Math.floor(new Date().getTime() / 1000)
+            },function(){
+              sketching_ribbon_handler('button-daylight-refresh');
+            }
+          );
+        }
+        else if (stat == "update")
+        {
+          window.ribbon1.disableRibbon();
+
+          // Call function once model is saved
+          busy_ajax("Generating Updated 3D Model, Please Verify Before Running Simulations");
+
+          $.post('../php/task_remesh.php',
+          {
+            t_called : Math.floor( new Date().getTime() / 1000)
+          }, 
+          function()
+          {
+            // We put this here because of the delay in creating the model
+            // We leave the user a loading indicator and only change the page when it is ready
+            //alert("Windows are required to run simulations");
+            bootbox.alert("3D model updated. Please verify before running simulations", function() {
+              window.location = "../pages/3d_tab.php";
+            });
+
+          });
+
+
+          // mindy
+          // alert("Create an updated 3D generated model before starting a simulation task");
+
+        }
+        else if (stat == "error")
+        {
+
+          bootbox.alert("Error in Generating 3D model, Please try another sketch", function() {
+            window.location = "../pages/3d_tab.php";
+          });
+
+        }
+        else
+        {
+          alert("Bug: Unreconized Status: " + stat);
+        }
+      }
+    });
+  }
+  
+  
+  if (event_str == 'button-monthly')
+  {
+    // Checking if we have a file stored in our slow folder
+
+    window.ribbon1.disableRibbon();
+    
+    $.ajax({
+      url: "../php/check_slow_folder.php",
+      dataType: 'json',
+      async:false,
+      data: {},
+      success: function(e) {
+         // alert(e.stat);
+        // Callback function after checking if there is output for us in the slow folder
+        var stat = e.stat; // "true" or "false"
+
+        if (stat == "ready")
+        {
+          window.ribbon1.enableRibbon();
+          // Tell the server to save this model
+
+          for(var mm=1;mm<13;mm++){
+              $.ajax({
+                type: 'POST',
+                url: "../php/task_daylight.php",
+                data: {
+                  month: mm,
+                  day: 1,
+                  hour: 12,
+                  minute: 00,
+                  tz_sign: -1,
+                  tz_hr : 5,
+                  tz_min: 00,
+                  weather: "CLEAR",
+                  t_called : Math.floor(new Date().getTime() / 1000)
+                },
+                async:false,
+                success: function(){
+                  sketching_ribbon_handler('button-daylight-refresh');
+                }
+              });
+          }
+
+        }
+        else if (stat == "update")
+        {
+          window.ribbon1.disableRibbon();
+
+          // Call function once model is saved
+          busy_ajax("Generating Updated 3D Model, Please Verify Before Running Simulations");
+
+          $.post('../php/task_remesh.php',
+          {
+            t_called : Math.floor( new Date().getTime() / 1000)
+          }, 
+          function()
+          {
+            // We put this here because of the delay in creating the model
+            // We leave the user a loading indicator and only change the page when it is ready
+            //alert("Windows are required to run simulations");
+            bootbox.alert("3D model updated. Please verify before running simulations", function() {
+              window.location = "../pages/3d_tab.php";
+            });
+
+          });
+
+
+          // mindy
+          // alert("Create an updated 3D generated model before starting a simulation task");
+
+        }
+        else if (stat == "error")
+        {
+
+          bootbox.alert("Error in Generating 3D model, Please try another sketch", function() {
+            window.location = "../pages/3d_tab.php";
+          });
+
+        }
+        else
+        {
+          alert("Bug: Unreconized Status: " + stat);
+        }
+      }
+    });
+  }
 
   if (event_str == 'tab-switch-task')
   {
@@ -3239,12 +3420,17 @@ function create_daylight_task(task_id)
   var w = document.getElementById(task_id).weather.value;
 
   var timezone_sign = 1;
-
+  
+  
+  
+  
   if(timezone_hour < 0){
     timezone_sign = -1;
     //we don't want a negative hour
     timezone_hour = timezone_hour*-1;
   }
+  
+//  alert(timezone_hour);
 
   //console.log(mn, dd);
   //console.log(hh, mi);
