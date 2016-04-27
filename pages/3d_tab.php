@@ -272,15 +272,9 @@
           </div>
           
         <script>
-            var path = getScrambledPath();
-//            var path = getPath();
-            
-//            var upath = getUnscrambledPath(path);
-            
-            console.log(path);
+            var path = getScrambledPath();  
             viewer = $('#container').viewer(path,false);
         </script>
-<!--        <script src="../js/render_model.js"></script>-->
         <script src="../js/copy.js"></script>
         
             
