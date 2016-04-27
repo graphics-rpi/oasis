@@ -30,6 +30,22 @@ function getScrambledValue(mypath){
     return path
 }
 
+function getModelInfo(mypath){
+   var path="";
+    $.ajax({ 
+        type: "POST",
+        data: {spath: mypath},
+        url: "../php/getModelStats.php", 
+            async: false, 
+            success : function(e) { 
+                var json = JSON.parse(e);
+                path += json.result; 
+            }
+    });
+    
+    return path;
+}
+
 function getModelTitle(myid){
     var path="";
     $.ajax({ 
@@ -383,8 +399,8 @@ function getUnscrambledPath(mypath){
                 
 //                alert(path.substr(41,44));
 //                alert(path.substr(42,45))
-//                if(display && path.substr(41,44)!="slow/" && path.substr(42,45)!="slow/" && path.substr(43,46)!="slow/")
-//                    document.getElementById("modelinfo").innerHTML = model_info;
+                if(display && path.substr(41,44)!="slow/" && path.substr(42,45)!="slow/" && path.substr(43,46)!="slow/")
+                    document.getElementById("modelinfo").innerHTML = getModelInfo(path);
                 
                 var gohome = document.createElement("a");
                 gohome.setAttribute("class","btn btn-default");
