@@ -44,18 +44,6 @@ function main(){
 }
 
 
-// =============================================================================
-// Completed Functions
-// =============================================================================
-
-
-
-
-
-// =============================================================================
-// TODO functions
-// =============================================================================
-
 function get_users_db()
 {
   // returns a list of users from our database
@@ -101,28 +89,53 @@ function create_model_div(div_id, container_id, username,  user_model_num)
 {
   var outer_div = document.createElement("div");
   outer_div.style.width  = "100%";
-  outer_div.style.height = "250px";
   outer_div.style.float  = "left";
   outer_div.style.position = "relative";
   outer_div.style.background = "white";
 
-  // outer_div.innerHTML = "<b>Insert Model Title</b>";
+  // We want to get the model title
+  var title = "";
+  $.ajax({
+    type: "POST",
+    url: "../php/get_model_title_db.php",
+    async: false,
+    data: {usr: username, umn: user_model_num},
+    success: function(e)
+    {
+      var json  = JSON.parse(e);
+      title = json.data;
+    },
+    error: function(e){
+      alert("Failed to get list of all users");
+    }
+  });
+
+  var top_div = document.createElement("div");
+  top_div.style.width  = "100%";
+  top_div.style.height = "50px";
+  top_div.style.float  = "left";
+  top_div.style.position = "relative";
+  top_div.style.background = "white";
 
 
+  top_div.innerHTML = "<hr><b>"+title+"</b>";
+
+  
   var div = document.createElement("div");
   div.id = div_id;
-  outer_div.style.height = "200px";
+  // div.style.height = "200px";
   div.style.float  = "left";
   div.style.position = "relative";
   div.style.background = "white";
+  
 
   document.getElementById(container_id).appendChild(outer_div);
+  outer_div.appendChild(top_div);
   outer_div.appendChild(div);
 }
 
 function get_models(username)
 {
-  alert("Running");
   // returns a list of user_model_num from a given username
   var user_model_num_list = new Array();
 

@@ -17,6 +17,12 @@
 	<!--viewer2d-->
 	<script src="../js/output_viewer_aux.js"></script>
 
+	<style>
+	body{
+		font-family: Helvetica;	
+	}
+	</style>
+
 </head>
 <body>
 	<h1>User Output Viewer Alpha</h1>
