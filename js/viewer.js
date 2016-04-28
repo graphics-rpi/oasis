@@ -10,7 +10,6 @@ function getScrambledPath(){
             }
     });
     
-//    console.log(path);
     return path;
 }
 
@@ -248,7 +247,7 @@ function getUnscrambledPath(mypath){
                     });
                 }
                 else{
-                    // Geometry, error, go back to sketching
+//                    Geometry, error, go back to sketching
                     bootbox.alert("Error: Could not interpret 3D geometry, make changes and try again", function(){
                         global_tab_handler("tab-sketch");
                     });
