@@ -32,7 +32,7 @@
 
   <!-- Loading A 3D Wall Model and Container -->
   <div id="canvas"></div>
-  <script src="../js/render_model.js"></script>
+<!--  <script src="../js/render_model.js"></script>-->
 
 
   <!-- Loading -->

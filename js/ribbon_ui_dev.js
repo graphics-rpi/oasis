@@ -129,7 +129,7 @@ console.log("Start ribbon_ui.js");
           ribbons: 
           [
             {
-              label: "Primatives",
+              label: "Primitives",
               width: "40%",
               tools: 
               [
@@ -139,14 +139,14 @@ console.log("Start ribbon_ui.js");
                   commands:
                   [
                     {
-                      hint: "Add a wall primative to the canvas",
+                      hint: "Add a wall primitive to the canvas",
                       name: "button-straight-wall",
                       label: "Wall",
                       icon: "wall.png",
                       props: {}
                     },
                     {
-                      hint: "Unsupported Primatives. Coming Soon!",
+                      hint: "Unsupported Primitives. Coming Soon!",
                       name: "button-curved-wall",
                       label: "Curved Wall",
                       icon: "curved-wall.png",

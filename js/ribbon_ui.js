@@ -129,7 +129,7 @@ console.log("Start ribbon_ui.js");
           ribbons: 
           [
             {
-              label: "Primatives",
+              label: "Primitives",
               width: "40%",
               tools: 
               [
@@ -139,14 +139,14 @@ console.log("Start ribbon_ui.js");
                   commands:
                   [
                     {
-                      hint: "Add a wall primative to the canvas",
+                      hint: "Add a wall primitive to the canvas",
                       name: "button-straight-wall",
                       label: "Wall",
                       icon: "wall.png",
                       props: {}
                     },
                     // {
-                    //   hint: "Unsupported Primatives. Coming Soon!",
+                    //   hint: "Unsupported Primitives. Coming Soon!",
                     //   name: "button-curved-wall",
                     //   label: "Curved Wall",
                     //   icon: "curved-wall.png",
@@ -424,7 +424,7 @@ console.log("Start ribbon_ui.js");
               tools: 
               [
                 {
-                  type: "split-button",
+                  type: "buttons",
                   size: "large",
                   commands:
                   [
@@ -436,7 +436,35 @@ console.log("Start ribbon_ui.js");
                       props: {}
                     }
                   ]
-                }
+                },
+                {
+                  type: "buttons",
+                  size: "large",
+                  commands:
+                  [
+                    {
+                      hint: "Create a new simulation task during soltices",
+                      name: "button-solstice",
+                      label: "Solstice",
+                      icon: "new-task.png",
+                      props: {}
+                    }
+                  ]
+                },
+                {
+                  type: "buttons",
+                  size: "large",
+                  commands:
+                  [
+                    {
+                      hint: "Create a new simulation task for the first of each month",
+                      name: "button-monthly",
+                      label: "Monthly",
+                      icon: "new-task.png",
+                      props: {}
+                    }
+                  ]
+                }    
               ]
             },
             {
