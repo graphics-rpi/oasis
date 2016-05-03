@@ -15,7 +15,7 @@ function CanvasGrid(w, h, divW, divH){
 function findBlock(point, grid){
 	if(point.x < 0 || point.x > grid.width || point.y < 0 || point.y > grid.height)
 		return [-1,-1];
-	return [math.floor(point.x/grid.wLen), math.floor(point.y/grid.hLen)];
+	return [Math.floor(point.x/grid.wLen), Math.floor(point.y/grid.hLen)];
 }
 
 function addStrokeToGrid(stroke, grid, nth){
@@ -146,11 +146,11 @@ function findById(strokeList, strokeId){
 }
 
 function withinPercent(a, b){
-    return math.min(math.abs((math.abs(a)-math.abs(b)))/math.abs(a), math.abs((math.abs(b)-math.abs(a)))/math.abs(b));
+    return Math.min(Math.abs((Math.abs(a)-Math.abs(b)))/Math.abs(a), Math.abs((Math.abs(b)-Math.abs(a)))/Math.abs(b));
 }
 
 function withinDiff(a,b){
-    return math.abs(math.abs(a)-math.abs(b));
+    return Math.abs(Math.abs(a)-Math.abs(b));
 }
 
 function findClosest(stroke){
@@ -247,8 +247,8 @@ function findCloser(pt, choice1, choice2){
 }
 
 function travelLine(slope, length, start, closeTo){
-    var px = length/math.sqrt(1+(slope*slope));
-    var py = (slope*length)/math.sqrt(1+(slope*slope));
+    var px = length/Math.sqrt(1+(slope*slope));
+    var py = (slope*length)/Math.sqrt(1+(slope*slope));
 
     var p1 = new Point(start.x+px, start.y+py);
     var p2 = new Point(start.x-px, start.y-py);

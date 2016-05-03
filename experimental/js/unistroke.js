@@ -28,13 +28,14 @@ function Stroke(id, idnum, pts, resampleSize, type){
     this.scores = [];
 }
 
+//test
 function StrokeCompare(str1, str2, pts){
 	this.stroke = str1;
 	this.otherStroke = str2;
 	this.otherPoints = pts;
-	this.timeDist = math.abs(str1.idnum - str2.idnum);
+	this.timeDist = Math.abs(str1.idnum - str2.idnum);
 	this.eucDist = distance(str1.center, str2.center);
-	this.score = this.timeDist + math.round(this.eucDist/100);
+	this.score = this.timeDist + Math.round(this.eucDist/100);
 }
 
 function Primitive(ids, name, score){
@@ -72,7 +73,7 @@ function strokeLength(pts){
 }
 
 function calcResize(length, resampleSize, lengPerSegement){
-	return math.round(length/lengPerSegement)*resampleSize;
+	return Math.round(length/lengPerSegement)*resampleSize;
 }
 
 //if p1 is a better fit than p2
@@ -182,8 +183,8 @@ function rotatepoint(cx, cy, x, y, angle){
 	var tempY = y - cy;
 
 	// now apply rotation
-	var rotatedX = tempX*math.cos(angle) - tempY*math.sin(angle);
-	var rotatedY = tempX*math.sin(angle) + tempY*math.cos(angle);
+	var rotatedX = tempX*Math.cos(angle) - tempY*Math.sin(angle);
+	var rotatedY = tempX*Math.sin(angle) + tempY*Math.cos(angle);
 
 	// translate back
 	x = rotatedX + cx;
@@ -201,7 +202,7 @@ function angle2Points(p1, p2){
 function angle2PointsFixedPoint(p1, p2, fixed){
 	var a1 = angle2Points(p1, fixed);
 	var a2 = angle2Points(p2, fixed)
-	return math.abs(a1-a2);
+	return Math.abs(a1-a2);
 }
 
 //original vs the one you are comparing to
@@ -487,8 +488,8 @@ function diagonalDistanceTest(primitive){
 	var d1 = distance(corners[0], corners[2]);
 	var d2 = distance(corners[1], corners[3]);
 	var avg = (d1+d2)/2;
-	sumpercent += math.abs((d1 - avg)/avg);
-	sumpercent += math.abs((d2 - avg)/avg);
+	sumpercent += Math.abs((d1 - avg)/avg);
+	sumpercent += Math.abs((d2 - avg)/avg);
 	sumpercent = sumpercent/2;
 	return sumpercent;
 }
@@ -506,7 +507,7 @@ function rightCornersTest(primitive){
 	var avg = sumArray(angles)/4;
 	
 	for(var i=0; i<angles.length; i++)
-		sumpercent += math.abs((angles[i] - avg)/avg);
+		sumpercent += Math.abs((angles[i] - avg)/avg);
 
 	sumpercent = sumpercent/4;
 	return sumpercent;
@@ -616,9 +617,9 @@ function drawRectangle(center, corners, color, id){
     var w = (distance(corners[1], corners[2]) + distance(corners[3], corners[0]))/2;
     var angle = reverseRotate(corners, center, h, w);
 
-    console.log("[0]", math.round(corners[0].x), math.round(corners[0].y), "[1]", math.round(corners[1].x), math.round(corners[1].y),
-    	"[2]", math.round(corners[2].x), math.round(corners[2].y), "[3]", math.round(corners[3].x), math.round(corners[3].y));
-    console.log("H", math.round(h), "W", math.round(w), "C", math.round(center.x), math.round(center.y), "A", angle);
+    console.log("[0]", Math.round(corners[0].x), Math.round(corners[0].y), "[1]", Math.round(corners[1].x), Math.round(corners[1].y),
+    	"[2]", Math.round(corners[2].x), Math.round(corners[2].y), "[3]", Math.round(corners[3].x), Math.round(corners[3].y));
+    console.log("H", Math.round(h), "W", Math.round(w), "C", Math.round(center.x), Math.round(center.y), "A", angle);
     //var angle = leastSquares(corners)['slope'];
     //draw square
     drawQuad(center.x-(w/2), center.y-(h/2), w, h, angle, color, id)
@@ -640,7 +641,7 @@ function rectScore(points, rect){
 }
 
 function recursiveScoring(points, rect, prevScore){
-
+	return 0;
 }
 
 function bestFitRect(object){
@@ -689,7 +690,7 @@ function checkObjectTemplates(p1, p2){
 }
 
 function primitiveCompare(p1, p2){
-	if(distance(p1.center, p2.center) < math.abs(p1.cdistance - p2.cdistance))
+	if(distance(p1.center, p2.center) < Math.abs(p1.cdistance - p2.cdistance))
 		return true;
 	return false;
 }
@@ -857,7 +858,7 @@ function equalityTest(corners){
 		sum += cornerdists[i];
 	var avg = sum/cornerdists.length;
 	for(var i=0; i<cornerdists.length; i++){
-		var p = math.abs((cornerdists[i] - avg)/avg);
+		var p = Math.abs((cornerdists[i] - avg)/avg);
 		sumpercent += p;
 	}
 	sumpercent = sumpercent/corners.length;
@@ -872,8 +873,8 @@ function diagonalEqualityTest(corners){
 	var d1 = distance(corners[0], corners[2]);
 	var d2 = distance(corners[1], corners[3]);
 	var avg = (d1+d2)/2;
-	sumpercent += math.abs((d1 - avg)/avg);
-	sumpercent += math.abs((d2 - avg)/avg);
+	sumpercent += Math.abs((d1 - avg)/avg);
+	sumpercent += Math.abs((d2 - avg)/avg);
 	sumpercent = sumpercent/2;
 	return sumpercent;
 }
@@ -884,7 +885,7 @@ function findAllCorners(stroke){
 		angles.push(angle2Points(stroke[i], stroke[(i+1)%stroke.length]));
 	}
 	for(var i=1; i<angles.length+2; i++){
-		if(math.abs(math.abs(angles[(i)%angles.length]) - math.abs(angles[(i-1)%angles.length])) > 30){
+		if(Math.abs(Math.abs(angles[(i)%angles.length]) - Math.abs(angles[(i-1)%angles.length])) > 30){
 			output.push(i%angles.length);
 		}
 	}
@@ -984,8 +985,8 @@ function rotateCorner(corn, center, t){
 	var tempY = y - cy;
 
 	// now apply rotation
-	var rotatedX = tempX*math.cos(theta) - tempY*math.sin(theta);
-	var rotatedY = tempX*math.sin(theta) + tempY*math.cos(theta);
+	var rotatedX = tempX*Math.cos(theta) - tempY*Math.sin(theta);
+	var rotatedY = tempX*Math.sin(theta) + tempY*Math.cos(theta);
 
 	// translate back
 	x = rotatedX + cx;
@@ -1018,7 +1019,7 @@ function reverseRotate(corners, center, h, w){
 
 	//var ans = leastSquares(corners);
 
-	// return math.atan(ans['slope']);
+	// return Math.atan(ans['slope']);
 	return ans;
 }
 
@@ -1273,7 +1274,7 @@ function printTo(results, place, code){
 // 	//console.log("angles ", n1, n2, sum);
 // 	//return sum;
 
-// 	return math.atan((corners[3].y-corners[0].y)/(corners[3].x-corners[0].x));
+// 	return Math.atan((corners[3].y-corners[0].y)/(corners[3].x-corners[0].x));
 // }
 
 // function drawSquare(primitive, color){
@@ -1417,7 +1418,7 @@ function printTo(results, place, code){
 // 		sum += cornerdists[i];
 // 	var avg = sum/cornerdists.length;
 // 	for(var i=0; i<cornerdists.length; i++){
-// 		var p = math.abs((cornerdists[i] - avg)/avg);
+// 		var p = Math.abs((cornerdists[i] - avg)/avg);
 // 		sumpercent += p;
 // 	}
 // 	sumpercent = sumpercent/cornerdists.length;

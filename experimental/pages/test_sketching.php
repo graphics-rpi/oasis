@@ -4,7 +4,6 @@
 		<script src="../../js/lib/raphael.js"></script>
 		<script src="../../js/lib/jquery.js"></script>
     	<script src="../../js/lib/jquery.form.min.js"></script>
-    	<script src="../../js/lib/math.min.js"></script>
 
     	<script src="../js/ndollar.js"></script>
     	<script src="../js/utilities_new.js"></script>
