@@ -58,7 +58,7 @@ console.log("Start ribbon_ui.js");
                   commands:
                   [
                     {
-                      hint: "Create a new model",
+                      hint: "Create new model",
                       name: "button-load-new",
                       label: "New Model",
                       icon: "newproject.png",
@@ -576,7 +576,7 @@ console.log("Start ribbon_ui.js");
                 }
               ]
             },
-            {
+            {https://www.atlassian.com/git/tutorials/using-branches/git-branch
               label: "",
               width: "30%",
               tools: 
