@@ -8,11 +8,12 @@ echo "This is hour)                    $4";
 echo "This is minute)                  $5";
 echo "this is weather)                 $6";
 echo "this is mode)                    $7";
+echo "geometry folder)                 $8";           
 
-if [ $# -ne "7" ];
+if [ $# -ne "8" ];
 then
     echo "Wrong number of parameters\n"
-    echo "Usage: ./run_daylighting <user model folder> <output folder> <month> <day> <hour> <minute> <weather> <visual mode>"
+    echo "Usage: ./run_daylighting <user model folder> <output folder> <month> <day> <hour> <minute> <weather> <visual mode> <model_folder>"
     echo "<br/>"
     echo "Requires trailing /"
     echo "<br/>"
@@ -20,14 +21,13 @@ then
 fi
 
 touch $1/pending.lock
-
+cd /home/grfx/GRAPHICS_GIT_WORKING_REPO/lsvo/build
 echo "=======================LSVO======================"
 # Move where lsvo is built (it contains optix exexutables)
-cd /home/grfx/GRAPHICS_GIT_WORKING_REPO/lsvo/build
 
 if [ "$7" = "ncv" ]; then
   # Run lsvo auto direct output to $2
-  /home/grfx/GRAPHICS_GIT_WORKING_REPO/lsvo/build/lsvo \
+  ./lsvo \
       -i ${1}foo.obj \
       -t 3000 \
       -patches 1000 -offline \
@@ -43,7 +43,7 @@ if [ "$7" = "ncv" ]; then
 
 else
   # Run lsvo auto direct output to $2
-  /home/grfx/GRAPHICS_GIT_WORKING_REPO/lsvo/build/lsvo \
+  ./lsvo \
       -i ${1}foo.obj \
       -t 3000 \
       -patches 1000 -offline \
@@ -59,13 +59,17 @@ else
 
 fi
 
+cd -
 echo "===============MORGIFY TWEEN HACK================="
-# Move back to output folder and make files png and readable
+# # Move back to output folder and make files png and readable
 cd $1
 mogrify -format png *.ppm
-cp ../../tween/foo.obj .
+rm foo.obj
+ln -s ${8}/tween/foo.obj foo.obj
+# ln -s ${8}/tween/foo.mtl foo.mtl
 chmod 755 *
 cd -
 rm $1/pending.lock
 touch $1/complete.lock
+
 echo "=============== End Script ======================="

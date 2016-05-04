@@ -61,6 +61,7 @@ def thesomething(filename, location):
             tz_min  = task_file.readline() # mm
             weather = task_file.readline() # weather
             colormode = task_file.readline()
+            model_path = task_file.readline()
 
             in_out  = in_out.strip('\n')
             month   = month.strip('\n')
@@ -72,11 +73,13 @@ def thesomething(filename, location):
             tz_min  = tz_min.strip('\n')
             weather = weather.strip('\n')
             colormode = colormode.strip('\n')
+            model_path = model_path.strip('\n')
+
 
             GMT_hr,GMT_min = convert_to_GMT(hour,minute,tz_sign,tz_hr,tz_min)
 
             errors_log = in_out + "errors.log"
-            bash_str = "/var/www/bin/run_daylighting.sh %s %s %s %s %s %s %s > %s"%(in_out, month, day, GMT_hr, GMT_min, weather, colormode, errors_log)
+            bash_str = "/var/www/bin/run_daylighting.sh %s %s %s %s %s %s %s %s > %s"%(in_out, month, day, GMT_hr, GMT_min, weather, colormode, model_path, errors_log)
             logging.debug( "Running bash: %s"%(bash_str))
             # We ask for the result, because it foreces it wait until task is done
             t_before = int(time.time())

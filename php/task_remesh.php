@@ -39,10 +39,8 @@ $username      = $userobj->username;
 $session_model = $userobj->workingModel;
 $id            = $session_model->id;
 
-// Hashed version of the users folder name
-$user_folder_name  = $userobj->getUserFolderName();
-$user_folder_path  = '/var/www/user_output/'.$user_folder_name.'/';
-$model_folder_path = $user_folder_path.'model_'.$id.'/';
+// Get the folder where we 
+$model_folder_path = '/var/www/user_output/geometry/'.$id.'/';
 
 // Create this folder if it doesn't exisit, if it does then we have already
 // Created a slow and tween folder and have a view (no change)
@@ -51,7 +49,6 @@ if ( mkdir($model_folder_path) )
   // Create subfolders where we will store simulation results
   mkdir($model_folder_path.'slow/');
   mkdir($model_folder_path.'tween/');
-  mkdir($model_folder_path.'results/');
 
   // ========================================
   // Creating task file and wall file
@@ -87,6 +84,8 @@ if ( mkdir($model_folder_path) )
 
   $log = shell_exec('./run_remesher.sh '.$wall_arg.' '.$out_arg);
 
+  shell_exec('rm /var/www/user_task/remesh/wall/'.$identifier.'.wall');
+  shell_exec('rm /var/www/user_task/remesh/task/'.$identifier.'.task');
   $t_ran =  time() - $t_before;
 
   $log_file = fopen($model_folder_path.'error.log', "w");
@@ -103,7 +102,7 @@ if ( mkdir($model_folder_path) )
 // ========================================
 // Setting global view path
 // ========================================
-$_SESSION['view_path'] = '../user_output/'.$user_folder_name.'/'.'model_'.$id.'/slow/';
+$_SESSION['view_path'] = '../user_output/geometry/'.$id.'/slow/';
 
 
 // ========================================
@@ -116,8 +115,6 @@ pg_query_params('INSERT INTO error_table VALUES($1,$2,$3,$4,$5)', array(
   "task_remesh.php",                // script
   ""                                // args
 ));
-
-
 
 error_log("task_remesh.php: Done");
 

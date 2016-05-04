@@ -198,7 +198,7 @@
 
             $view_path = $_SESSION['view_path'];
             $view_path = explode("/", $view_path);
-            $view_path = explode("_",$view_path[5]);
+            $view_path = explode("_",$view_path[4]);
             if($view_path[5] == "fcv"){
 
               echo "<script>";
@@ -222,7 +222,7 @@
           <div id= "title">
           </div>
           <!-- php script will display model information only if we are viewing renderings -->
-          <?php  if(sizeof(explode("/", $_SESSION['view_path'])) > 6){  ?>
+          <?php  if(True){  ?>
               <div id="modelinfo">
                 <?php
                   require_once('../php/user.php');

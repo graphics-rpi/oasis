@@ -174,11 +174,14 @@ function getUnscrambledPath(mypath){
         var mouseY = 0;
         var mouseYOnMouseDown = 0;
         
-        var path = getUnscrambledPath(spath); 
+        var path = spath;  // view path
         
+        // Get the id from ajax call
         var arr = path.split('/');
-        var model = arr[3];
-        var id = model.split('_')[1];
+        var id = arr[3];
+
+        // alert("id: " + id);
+
         
         if(display){        
             var content = document.createElement("center");
@@ -186,7 +189,7 @@ function getUnscrambledPath(mypath){
             mtitle.setAttribute("id","model_title");
             mtitle.innerHTML = getModelTitle(id);
             
-//            console.log(getModelTitle(id));
+            // alert(console.log(getModelTitle(id)));
             mtitle.className = "mtitle";
             content.appendChild(mtitle);
             document.getElementById("container").appendChild(content);   
@@ -397,9 +400,12 @@ function getUnscrambledPath(mypath){
                     btn_group.appendChild(b3);
                 
 //                alert(path.substr(41,44));
-//                alert(path.substr(42,45))
-                if(display && path.substr(41,44)!="slow/" && path.substr(42,45)!="slow/" && path.substr(43,46)!="slow/")
+                  alert( path.split('/')[2] );
+                if(display && path.split('/')[2] == "texture"){
+
+                  
                     document.getElementById("modelinfo").innerHTML = getModelInfo(path);
+                }
                 
                 var gohome = document.createElement("a");
                 gohome.setAttribute("class","btn btn-default");

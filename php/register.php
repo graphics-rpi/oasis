@@ -40,9 +40,6 @@
   // CONFIRMATION and REDIRECT
   if ($created_user->authenticate()) {
 
-    // Setting up users folder
-    $created_user->createUserFolder();
-    
     // Creating default/blank fields in session model
     $id = "Not Assigned";
 
