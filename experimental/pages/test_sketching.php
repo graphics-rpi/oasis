@@ -29,6 +29,7 @@
 
 				<div id="canvas"></div>
 
+
 				<div id="underpanel">
 					<div class="underpanelbox">
 						<form id= "error_report" method="post">

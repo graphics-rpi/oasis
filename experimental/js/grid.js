@@ -3,104 +3,104 @@ var CANVAS_HEIGHT = 500;
 
 //div = divisions per side
 function CanvasGrid(w, h, divW, divH){
-	this.width = w;
-	this.height = h;
-	this.divW = divW;
-	this.divH = divH;
-	this.wLen = w/divW;
-	this.hLen = h/divH;
-	this.elements = setupGrid(w/divW, h/divH);
+    this.width = w;
+    this.height = h;
+    this.divW = divW;
+    this.divH = divH;
+    this.wLen = w/divW;
+    this.hLen = h/divH;
+    this.elements = setupGrid(w/divW, h/divH);
 }
 
 function findBlock(point, grid){
-	if(point.x < 0 || point.x > grid.width || point.y < 0 || point.y > grid.height)
-		return [-1,-1];
-	return [Math.floor(point.x/grid.wLen), Math.floor(point.y/grid.hLen)];
+    if(point.x < 0 || point.x > grid.width || point.y < 0 || point.y > grid.height)
+        return [-1,-1];
+    return [Math.floor(point.x/grid.wLen), Math.floor(point.y/grid.hLen)];
 }
 
 function addStrokeToGrid(stroke, grid, nth){
-	for(var i=0; i<stroke.length; i+=nth){
-		if(i < stroke.numPoints){
-			var index = findBlock(stroke.points[i], grid);
-			var toPush = grid.elements[index[0]][index[1]].contents;
-			//check if it's there
-			var isThere = binarySearch(toPush, stroke.id);
-			if(isThere == -1){
-				toPush.push(stroke.id);
-				toPush.sort();
-			}
-		}
-	}
-	return grid;
+    for(var i=0; i<stroke.length; i+=nth){
+        if(i < stroke.numPoints){
+            var index = findBlock(stroke.points[i], grid);
+            var toPush = grid.elements[index[0]][index[1]].contents;
+            //check if it's there
+            var isThere = binarySearch(toPush, stroke.id);
+            if(isThere == -1){
+                toPush.push(stroke.id);
+                toPush.sort();
+            }
+        }
+    }
+    return grid;
 }
 
 function gridElement(minX, minY, maxX, maxY){
-	this.minX = minX;
-	this.minY = minY;
-	this.maxX = maxX;
-	this.maxY = maxY;
-	this.contents = [];
+    this.minX = minX;
+    this.minY = minY;
+    this.maxX = maxX;
+    this.maxY = maxY;
+    this.contents = [];
 }
 
 //nH/nW is the dimensions of each block
 function setupGrid(nH, nW) {
-	var canvasGrid = [];
-	var canvasGridElement = [];
-	var currH = 0, currW = 0;
+    var canvasGrid = [];
+    var canvasGridElement = [];
+    var currH = 0, currW = 0;
 
-	while(currW <= CANVAS_WIDTH-nW){
-		while(currH <= CANVAS_HEIGHT-nH){
-			canvasGridElement.push(new gridElement(currW, currH, currW+nW, currH+nH));
-			currH += nH;
-		}
-		canvasGrid.push(canvasGridElement.splice(0));
-		canvasGridElement = [];
-		currH = 0;
-		currW += nW;
-	}
-	return canvasGrid;
+    while(currW <= CANVAS_WIDTH-nW){
+        while(currH <= CANVAS_HEIGHT-nH){
+            canvasGridElement.push(new gridElement(currW, currH, currW+nW, currH+nH));
+            currH += nH;
+        }
+        canvasGrid.push(canvasGridElement.splice(0));
+        canvasGridElement = [];
+        currH = 0;
+        currW += nW;
+    }
+    return canvasGrid;
 }
 
 function practicegrid(div){
-	var ind = 0;
-	var startstr = "grid_";
-	var obj = paper.getById(startstr+ind);
-	if(obj != null){
-		while(obj != null){
-			obj.remove();
-			ind++;
-			obj = paper.getById(startstr+ind);
-		}
-	}
-	else{
-		var lines = [];
-		for(var i=1; i<div; i++){
-			lines.push("M" + 0 + " " + CANVAS_HEIGHT/div*i + "L" + CANVAS_WIDTH + " " + CANVAS_HEIGHT/div*i);
-			lines.push("M" + CANVAS_WIDTH/div*i + " " + 0 + "L" + CANVAS_WIDTH/div*i + " " + CANVAS_HEIGHT);
-		}
-		for(var i=0; i<lines.length; i++){
-			var gridLine = paper.path(lines[i]);
-			gridLine.id = startstr + ind;
-			ind++;
-		}
-	}
+    var ind = 0;
+    var startstr = "grid_";
+    var obj = paper.getById(startstr+ind);
+    if(obj != null){
+        while(obj != null){
+            obj.remove();
+            ind++;
+            obj = paper.getById(startstr+ind);
+        }
+    }
+    else{
+        var lines = [];
+        for(var i=1; i<div; i++){
+            lines.push("M" + 0 + " " + CANVAS_HEIGHT/div*i + "L" + CANVAS_WIDTH + " " + CANVAS_HEIGHT/div*i);
+            lines.push("M" + CANVAS_WIDTH/div*i + " " + 0 + "L" + CANVAS_WIDTH/div*i + " " + CANVAS_HEIGHT);
+        }
+        for(var i=0; i<lines.length; i++){
+            var gridLine = paper.path(lines[i]);
+            gridLine.id = startstr + ind;
+            ind++;
+        }
+    }
 
 }
 
 function printGrid(grid, id){
-	var output = "";
-	var gr = grid.elements;
-	for(var i=0; i<gr[0].length; i++){
-		for(var j=0; j<gr.length; j++){
-			var isThere = binarySearch(gr[j][i].contents, id);
-			if(isThere != -1)
-				output += "1 ";
-			else
-				output += "0 ";
-		}
-		output += "\n";
-	}
-	return output;
+    var output = "";
+    var gr = grid.elements;
+    for(var i=0; i<gr[0].length; i++){
+        for(var j=0; j<gr.length; j++){
+            var isThere = binarySearch(gr[j][i].contents, id);
+            if(isThere != -1)
+                output += "1 ";
+            else
+                output += "0 ";
+        }
+        output += "\n";
+    }
+    return output;
 }
 //go through the grid and find ones close gridwise
 function findClose(grid,stroke){
@@ -201,14 +201,46 @@ function iterativeSearch(ds, key){
     return -1;
 }
 
+function combineArraysExcept(arrs, except){
+    var out = [];
+    for(var i=0; i<arrs.length; i++){
+        for(var j=0; j<arrs[i].length; j++){
+            if(arrs[i][j] != except)
+                out.push(arrs[i][j]);
+        }
+    }
+    return out;
+}
+
+//find if a stroke is part of an object
+function findObjectFriends(idnum){
+    var str = Stroke_List[idnum];
+    var output = [];
+    var found = false;
+    for(var i=0; i<Object_List.length; i++){
+        for(var j=0; j<Object_List[i].strokes.length; j++){
+            for(var k=0; k<Object_List[i].strokes[j].length; k++){
+                if(Object_List[i].strokes[j][k] == idnum){
+                    var ids = combineArraysExcept(Object_List[i].strokes, idnum);
+                    for(var a=0; a<ids.length; a++){
+                        output.push(Stroke_List[ids[a]]);
+                    }
+                }
+            }
+        }
+    }
+    return output;
+}
+
 function removeStroke(nearby){
     var index = iterativeSearch(Stroke_List, nearby.id);
     Stroke_List[index].removed = true;
     var id = Stroke_List[index].id;
     var obj = paper.getById(id);
+
+
     try{
         obj.remove();
-
     }
     catch(err){
         console.log("ERROR removing similar stroke");
@@ -226,8 +258,11 @@ function overwrite(lastStroke){
         closeEnough = findReplaceable(lastStroke, closeStrokes);
 
         //delete the old line 
-        if(closeEnough.length > 0)
-           removeStroke(closeEnough[0]);
+        if(closeEnough.length > 0){
+            removeStroke(closeEnough[0]);
+            return closeEnough[0].idnum;
+        }
+           
     }
     else if(lastStroke.type == 'scribble'){
         if(Stroke_List.length > 1){
@@ -235,9 +270,14 @@ function overwrite(lastStroke){
             if(distance(closest.center, lastStroke.center) < 25){
                 removeStroke(closest);
                 removeStroke(lastStroke);
+                return closest.idnum;
             }
         }
     }
+    else{
+        return -1;
+    }
+    return -1;
 }
 
 function findCloser(pt, choice1, choice2){
@@ -290,6 +330,7 @@ function findEndPoint(startPt, endPt, strokeId, length){
         return windEnd;
     }
 }
+
 
 function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
     var simplified;

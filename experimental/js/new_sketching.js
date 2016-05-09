@@ -1,5 +1,6 @@
 var canvas = document.getElementById('canvas');
 var paper = new Raphael(canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
+
 var mousedown = false;
 var lastX, lastY, path, pathString;
 
@@ -15,6 +16,7 @@ var oldObjs = [], newObjs = [];
 var startPoint, endPoint;
 var shiftDown = false, windowMode = false;
 var clickedOn;
+var northArrowClick = false;
 var d = new Date();
 var closeEnough = [];
 
@@ -22,7 +24,33 @@ var gridDivisions = 20;
 //var Grid = new CanvasGrid(canvasWidth, canvasHeight, gridDivisions, gridDivisions);
 //practicegrid(gridDivisions);
 
-//var sketchPad = new sketchPad(canvas);
+//starting 
+var northAngle = 0, northX = 235, northY = 5, northWidth = 30, northHeight = 40;
+
+var piece = paper.image("../images/northarrow.png", 0, 0, northWidth, northHeight)
+    .attr({cursor: "move", transform: "R" + northAngle + "T" + northX + "," + northY });
+piece.drag(dragMove, dragStart, dragStop);
+
+// Set up the object for dragging
+function dragStart(){
+    this.ox = northX;
+    this.oy = northY;
+    northArrowClick = true;
+}
+//what does the arrow do when we let go
+function dragStop() {
+    northAngle = angleAwayFromCenter(CANVAS_WIDTH/2,CANVAS_WIDTH/2, northX+15, northY+20);
+    piece.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 500, "<>");
+    northArrowClick = false;
+}
+//follow the mouse
+function dragMove(dx, dy) {
+    northX = Math.min(CANVAS_WIDTH-30, this.ox+dx);
+    northY = Math.min(CANVAS_HEIGHT-40, this.oy+dy);
+    northX = Math.max(0, northX);
+    northY = Math.max(0, northY);            
+    piece.attr({ transform: "R" + northAngle + "T" + northX + "," + northY });
+}
 
 
 function get_strokes(){
@@ -134,56 +162,64 @@ function pathMouseUp(e){
 }
 
 $(canvas).mousedown(function (e) {
-    lastpath = [];
-    mousedown = true;
+    if(!northArrowClick){
+        lastpath = [];
+        mousedown = true;
 
-    var x = e.offsetX, y = e.offsetY;
-    lineLength = 0;
-    
-    startPoint = new Point(x,y);
-    lastpath.push(new Point(x, y));
+        var x = e.offsetX, y = e.offsetY;
+        lineLength = 0;
+        
+        startPoint = new Point(x,y);
+        lastpath.push(new Point(x, y));
 
-    pathString = 'M' + x + ' ' + y + 'l0 0';
-    path = paper.path(pathString);
+        pathString = 'M' + x + ' ' + y + 'l0 0';
+        path = paper.path(pathString);
 
-    lastX = x;
-    lastY = y;
+        lastX = x;
+        lastY = y;
+    }
 });
 
 $(canvas).mouseup(function () {
+    if(northArrowClick == true)
+        return;
     mousedown = false;
     path.remove();
 
+    //line has a minimum length
     if(lineLength < lineMin){
         lastpath = [];
         windowMode = false;
         return;
     }
 
-    var simplified = findPrintedPath(startPoint, endPoint, clickedOn,
+    //turns path into a processable path based on windowmode, etc.
+    var processed = findPrintedPath(startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
-    
-
-    process_line(simplified);
+    //find type of line, draw it, save it
+    process_line(processed);
     var lastStroke = Stroke_List[Stroke_List.length-1];
+    var deleted = overwrite(lastStroke);
 
-    overwrite(lastStroke);
+    //finds current list of objects
+    if(deleted == -1){
+        newObjs = processStrokes([lastStroke], 5);
+        console.log(newObjs);
+    }
+    else{
+        var friends = findObjectFriends(deleted);
+        console.log('looks like we deleted something', friends.length);
+        if(friends.length > 0){
+            newObjs = processStrokes(friends, 5);
+            console.log("redone", newObjs);
+        }
+    }
 
-    var out = processStrokes([lastStroke], 5);
-    console.log(out);
-
-    //var results = reprocessCanvas(Stroke_List, primitives);
-    newObjs = out;
-    //primitives = results.primitives;
-
-    deleteOldObjects(oldObjs, newObjs);
-    placeNewObjects(oldObjs, newObjs);
-    oldObjs = newObjs.slice(0);
+    oldObjs = objectCleanUp(oldObjs, newObjs);
 
     get_strokes();
     get_objects();
 
-    //printEverything(results);
     lastpath = [];
     windowMode = false;
     //console.log("Mouse up complete");
@@ -191,6 +227,9 @@ $(canvas).mouseup(function () {
 
 $(canvas).mousemove(function (e) {
     if (!mousedown) {
+        return;
+    }
+    if(northArrowClick){
         return;
     }
     var x = e.offsetX, y = e.offsetY;
@@ -305,23 +344,17 @@ $('#saveoutput').click(function (e) {
 $('#testinput').click(function (e) {
     var strokes = document.getElementById('textplace').value;
     strokes = JSON.parse(strokes);
-
+    var working_strokes = [];
     for(var i=0; i<strokes.length; i++){
         process_line(strokes[i]);
+        working_strokes.push(Stroke_List[Stroke_List.length-1]);
     }
 
-    var results = reprocessCanvas(Stroke_List, primitives);
-    primitives = results.primitives;
-    newObjs = results.newObjs;
-
-    deleteOldObjects(oldObjs, newObjs);
-    placeNewObjects(oldObjs, newObjs);
-    oldObjs = newObjs.slice(0);
+    newObjs = processStrokes(working_strokes, 5);
+    oldObjs = objectCleanUp(oldObjs, newObjs);
 
     get_strokes();
     get_objects();
-
-    printEverything(results);
 
 });
 
@@ -407,4 +440,6 @@ function plotpoints(pts){
     }
 }
 
-    
+function todegrees(n){
+    return n*(180/Math.PI);
+}

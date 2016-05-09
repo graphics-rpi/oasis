@@ -13,7 +13,7 @@
 				"Data:".PHP_EOL.
 				$points.PHP_EOL;
 
-	$dest = '../error_reports/'.$name.date("_md_").date("hi").'.txt';
+	$dest = '../error_reports/'.date("_md_").date("hi").$name.'.txt';
 	//Save string to log, use FILE_APPEND to append.
 	file_put_contents($dest, $log, FILE_APPEND | LOCK_EX);
 ?>
