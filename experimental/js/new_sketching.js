@@ -199,22 +199,8 @@ $(canvas).mouseup(function () {
     //find type of line, draw it, save it
     process_line(processed);
     var lastStroke = Stroke_List[Stroke_List.length-1];
-    var deleted = overwrite(lastStroke);
-
-    //finds current list of objects
-    if(deleted == -1){
-        newObjs = processStrokes([lastStroke], 5);
-        console.log(newObjs);
-    }
-    else{
-        var friends = findObjectFriends(deleted);
-        console.log('looks like we deleted something', friends.length);
-        if(friends.length > 0){
-            newObjs = processStrokes(friends, 5);
-            console.log("redone", newObjs);
-        }
-    }
-
+    
+    newObjs = processStroke(lastStroke, paper);
     oldObjs = objectCleanUp(oldObjs, newObjs);
 
     get_strokes();
@@ -239,18 +225,18 @@ $(canvas).mousemove(function (e) {
     lineLength += distance(new Point(lastX, lastY), new Point(x,y));
     
     //straight line mode
-    if(shiftDown||windowMode){
-        var newPathString = pointsToPath([startPoint, new Point(x, y)]);
-        path.attr('path', newPathString);
-        if(windowMode){
-            path.attr({"stroke": "#0EBFE9", "stroke-width": 5});
-        }
-        endPoint = new Point(e.offsetX, e.offsetY);
-    }
-    else {
+    // if(shiftDown||windowMode){
+    //     var newPathString = pointsToPath([startPoint, new Point(x, y)]);
+    //     path.attr('path', newPathString);
+    //     if(windowMode){
+    //         path.attr({"stroke": "#0EBFE9", "stroke-width": 5});
+    //     }
+    //     endPoint = new Point(e.offsetX, e.offsetY);
+    // }
+    // else {
         pathString += 'l' + (x - lastX) + ' ' + (y - lastY);
         path.attr('path', pathString);
-    }
+    // }
     lastX = x;
     lastY = y;
 });
@@ -258,11 +244,6 @@ $(canvas).mousemove(function (e) {
 $(canvas).mouseleave(function () {
     if(lastpath.length > 0 && path != null){
         path.remove();
-
-        get_strokes();
-        get_objects();
-
-        //printEverything(results);
         lastpath = [];
     }
 });
@@ -344,13 +325,11 @@ $('#saveoutput').click(function (e) {
 $('#testinput').click(function (e) {
     var strokes = document.getElementById('textplace').value;
     strokes = JSON.parse(strokes);
-    var working_strokes = [];
     for(var i=0; i<strokes.length; i++){
         process_line(strokes[i]);
-        working_strokes.push(Stroke_List[Stroke_List.length-1]);
+        var lastStroke = Stroke_List[Stroke_List.length-1];
+        newObjs = processStroke(lastStroke, paper);
     }
-
-    newObjs = processStrokes(working_strokes, 5);
     oldObjs = objectCleanUp(oldObjs, newObjs);
 
     get_strokes();
@@ -393,7 +372,6 @@ function draw_line(pts, idname, type){
         drawn_line.mousedown(pathMouseDown);
         drawn_line.mouseup(pathMouseUp);
     }
-//    console.log("added line ", linepath);
 }
 
 function save_line(pts, idnum, idname, type){
@@ -418,12 +396,8 @@ function process_line(pts){
     else
         type = 'stroke';
     idname = type + "_" + lineidcount;
-    // console.log(0.11);
     save_line(pts, lineidcount, idname, type);
-    // console.log(0.12);
     draw_line(pts, idname, type);
-    // console.log(0.13);
-   // plotpoints(pts);
     lineidcount++;
 }
 

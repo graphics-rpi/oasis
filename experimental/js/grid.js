@@ -84,7 +84,6 @@ function practicegrid(div){
             ind++;
         }
     }
-
 }
 
 function printGrid(grid, id){
@@ -212,25 +211,44 @@ function combineArraysExcept(arrs, except){
     return out;
 }
 
-//find if a stroke is part of an object
-function findObjectFriends(idnum){
-    var str = Stroke_List[idnum];
-    var output = [];
-    var found = false;
+//finds an object given a stroke ID
+function findObjectById(idnum){
     for(var i=0; i<Object_List.length; i++){
         for(var j=0; j<Object_List[i].strokes.length; j++){
             for(var k=0; k<Object_List[i].strokes[j].length; k++){
                 if(Object_List[i].strokes[j][k] == idnum){
-                    var ids = combineArraysExcept(Object_List[i].strokes, idnum);
-                    for(var a=0; a<ids.length; a++){
-                        output.push(Stroke_List[ids[a]]);
-                    }
+                    return Object_List[i];
                 }
             }
         }
     }
+    return -1;
+}
+
+//find if a stroke is part of an object
+function findObjectFriends(idnum){
+    var str = Stroke_List[idnum];
+    var output = [];
+    var object = findObjectById(idnum);
+    var ids = combineArraysExcept(object.strokes, idnum);
+    for(var a=0; a<ids.length; a++){
+        output.push(Stroke_List[ids[a]]);
+    }
     return output;
 }
+
+function deleteIdPrevCombosList(idnum){
+    for(var i=0; i<Prev_Combos_List.length; i++){
+        for(var j=0; j<Prev_Combos_List[i].ids.length; j++){
+            if(Prev_Combos_List[i].ids[j] == idnum){
+                Prev_Combos_List.splice(i, 1);
+                break;
+            }
+        }
+    }
+    return Prev_Combos_List;
+}
+
 
 function removeStroke(nearby){
     var index = iterativeSearch(Stroke_List, nearby.id);
@@ -331,7 +349,7 @@ function findEndPoint(startPt, endPt, strokeId, length){
     }
 }
 
-
+//based on what type of path it is return the correct path points
 function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
     var simplified;
     if(windowMode) {
@@ -356,4 +374,44 @@ function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown,
         }
     }
     return simplified;
+}
+
+function deleteStroke(strokenum, paper){
+    var newObjs = [];
+    //change it to hidden
+    Stroke_List[strokenum].removed = true;
+
+    //delete the stroke from canvas
+    //paper.getById(Stroke_List[strokenum].id).remove();
+
+    //delete the object from the canvas
+    //var obj = findObjectById(strokenum);
+    //paper.getById(obj.id).remove();
+
+    //delete the object from prev combos list
+    Prev_Combos_List = deleteIdPrevCombosList(strokenum);
+
+    //find other strokes it was connected with (if any)
+    var friends = findObjectFriends(strokenum);
+    console.log('looks like we deleted something', friends.length);
+    if(friends.length > 0){
+        newObjs = addStroke(friends, 5);
+        console.log("redone", newObjs);
+    }
+
+    return newObjs;
+}
+
+function processStroke(lastStroke, paper){
+    var newObjs = [];
+    var deleted = overwrite(lastStroke);
+
+    //finds current list of objects
+    if(deleted == -1){
+        newObjs = addStroke([lastStroke], 5);
+    }
+    else{
+        newObjs = deleteStroke(deleted, paper);
+    }
+    return newObjs;
 }

@@ -202,20 +202,6 @@ function reverseRotate(corners, center, h, w){
 	return ans;
 }
 
-function scoreStrokes(strokes){
-	for(var i=0; i<strokes.length; i++){
-		var current_stroke = Stroke_List[strokes[i].idnum];
-		for(var j=0; j<Stroke_List.length; j++) {
-			if(current_stroke.id != Stroke_List[j].id) {
-				current_scoring = new StrokeCompare(strokes[i], Stroke_List[j], Stroke_List[j].points);
-				current_stroke.scores.push(current_scoring);
-				current_scoring = new StrokeCompare(Stroke_List[j], strokes[i], strokes[i].points);
-				Stroke_List[j].scores.push(current_scoring);
-			}
-		}
-	}
-}
-
 function pointSimplification(points, n){
 	var output = [];
 	for(var i=0; i<points.length; i+=n){
@@ -699,10 +685,23 @@ function newObject(primitive, paperObjList, name){
 	return -1;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Main Functionality
+
+//scores each stroke against all other strokes
+function scoreStrokes(strokes){
+	for(var i=0; i<strokes.length; i++){
+		var current_stroke = Stroke_List[strokes[i].idnum];
+		for(var j=0; j<Stroke_List.length; j++) {
+			if(current_stroke.id != Stroke_List[j].id) {
+				current_scoring = new StrokeCompare(strokes[i], Stroke_List[j], Stroke_List[j].points);
+				current_stroke.scores.push(current_scoring);
+				current_scoring = new StrokeCompare(Stroke_List[j], strokes[i], strokes[i].points);
+				Stroke_List[j].scores.push(current_scoring);
+			}
+		}
+	}
+}
 
 var combine = function(a, min) {
     var fn = function(n, src, got, all) {
@@ -803,7 +802,7 @@ function recognizePrimitives(strokelist, scores){
 	var results = [], matched = [], chosenCombos = [];
 	var chosen = true;
 	//match every line to something
-	while(matched.length != strokelist.length && i < scores.length){
+	while(matched.length < strokelist.length && i < scores.length){
 		var indicies = scores[i].ids;
 
 		for(var j=0; j<indicies.length; j++){
@@ -817,12 +816,14 @@ function recognizePrimitives(strokelist, scores){
 		if(chosen == true){
 			chosenCombos.push(scores[i]);
 			results.push(new Primitive(scores[i].ids, scores[i].name, scores[i].score));
-		}
-		for(var k=0; k<scores[i].ids.length; k++)
-			matched.push(scores[i].ids[k]);
+			for(var k=0; k<scores[i].ids.length; k++)
+				matched.push(scores[i].ids[k]);
 
-		matched.sort(function(a, b){return a-b});
+			matched.sort(function(a, b){return a-b});
+		}
+		
 		i++;
+		chosen = true;
 	}
 	return {results:results, prevCombos:chosenCombos};
 }
@@ -980,14 +981,14 @@ function objectCleanUp(oldObjs, newObjs){
 //Call the function itself
 
 //can enter in more than 1
-function processStrokes(strokes, topNum) {
-	var allNewCombos = [], allScores = [], objectList = [], allPrim = [], allObjs = [];
+function addStroke(stroke, topNum) {
+	var allNewCombos = [], allScores = [], objectList = [], allPrim = [], allPrim2 = [], allObjs = [];
 
 	//find scores for all new strokes against all other strokes
-	scoreStrokes(strokes);
+	scoreStrokes(stroke);
 
 	//for each stroke sort them and find combinations of top [topNum]
-	allNewCombos = multipleFindStrokeCombos(strokes, topNum);
+	allNewCombos = multipleFindStrokeCombos(stroke, topNum);
 	allNewCombos = concatArray(allNewCombos);
 	printTo(allNewCombos, 'one', 1);
 	//scores them all
@@ -998,13 +999,15 @@ function processStrokes(strokes, topNum) {
 	allPrim = recognizePrimitives(Stroke_List, allScores);
 	Prev_Combos_List = allPrim.prevCombos;
 	printTo(allPrim.results, 'three', 3);
-	allPrim = refinePrimitives(allPrim.results);
-	printTo(allPrim, 'four', 3);
+	allPrim2 = refinePrimitives(allPrim.results);
+	printTo(allPrim2, 'four', 3);
 
-	allObjs = primitivesToObjects(allPrim);
+	allObjs = primitivesToObjects(allPrim2);
 
 	return allObjs;
-}	
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //printing
