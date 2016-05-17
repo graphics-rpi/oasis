@@ -5,16 +5,13 @@ var cornerpoints = [];
 var cornercount = 0;
 var objidcount = 0;
 var lastprocessed = 0;
+var HISTORY_DEPTH = 7;
 
 var ObjectTemplates = [];
 ObjectTemplates.push(new ObjectTemplate("wardrobe", ["rect", "W"]));
 ObjectTemplates.push(new ObjectTemplate("bed", ["rect", "B"]));
 ObjectTemplates.push(new ObjectTemplate("desk", ["rect", "D"]));
 
-//simplifyratio of around .5 to 2
-//n is the max length before you want to allocate more points
-//pps = points per segment
-//aka the resample size grows as the stroke is longer
 function Stroke(id, idnum, pts, resampleSize, type){
 	this.id = id;
 	this.idnum = idnum;
@@ -39,7 +36,12 @@ function StrokeCompare(str1, str2, pts){
 	this.otherPoints = pts;
 	this.timeDist = Math.abs(str1.idnum - str2.idnum);
 	this.eucDist = distance(str1.center, str2.center);
-	this.score = this.timeDist + Math.round(this.eucDist/100);
+	this.score = strokeScoring(this.timeDist, (this.eucDist/100),
+		this.stroke.bestFitLine.slope, this.otherStroke.bestFitLine.slope);
+}
+
+function strokeScoring(timeDist, eucDist, myAngle, otherAngle){
+	return (eucDist*eucDist + Math.abs(myAngle-otherAngle)/20);
 }
 
 function Primitive(ids, name, score){
@@ -63,7 +65,7 @@ function PaperObject(id, name, points, strokes, center, corners, cdist){
 	this.corners = corners;
 	this.cdist = cdist;
 	this.points = points;
-	this.simplifiedPoints = pointSimplification(points, 5);
+	this.simplifiedPoints = pointSimplification(points, HISTORY_DEPTH);
 }
 
 function ObjectTemplate(name, primitives){
@@ -456,8 +458,7 @@ function drawRectangle(object, color){
    	//drawQuad(center.x-(w/2), center.y-(h/2), w, h, angle, color, id);
    	console.log(d);
    	//console.log(h, w, angle);
-    drawQuad(d.rect.cx-(d.rect.w/2), d.rect.cy-(d.rect.h/2), d.rect.w, d.rect.h, (360-d.rect.angle), "#9D22AA", id);
-
+    drawQuad(d.rect.cx-(d.rect.w/2), d.rect.cy-(d.rect.h/2), d.rect.w, d.rect.h, (360-d.rect.angle), color, id);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -552,7 +553,7 @@ function recursiveScoring(points, rect, prevScore, inc){
 function incrementCalc(inc, type){
 	if(inc == 0)
 		inc = 1;
-	var angleStart = 1, whStart = 1, xyStart = 1;
+	var angleStart = 20, whStart = 30, xyStart = 20;
 	if(type == "angle"){
 		return Math.ceil(angleStart/inc);
 	}
@@ -654,32 +655,19 @@ function primitiveCompare(p1, p2){
 	return false;
 }
 
-//return true if they are the same
-function arrayEquality(a1, a2){
-	if(a1.length != a2.length)
-		return false;
-	for(var i=0; i<a1.length; i++){
-		if(a1[i] != a2[i])
-			return false;
-	}
-	return true;
-}
-
 //if they are the s
-function sameValues(primitive, paperObj, name){
+function sameValues(primitive, paperObj){
 	//if the centers are the same, and corners are same, return true
-	if(paperObj.name == name) {
-		if(primitive.center == paperObj.center){
-			if(arrayEquality(primitive.corners, paperObj.corners) == true)
-				return true;
-		}
+	if(primitive.center.x == paperObj.center.x && primitive.center.y == paperObj.center.y){
+		if(arraysEqual(primitive.pts, paperObj.points) == true)
+			return true;
 	}
 	return false;
 }
 
-function newObject(primitive, paperObjList, name){
+function newObject(primitive, paperObjList){
 	for(var i=0; i<paperObjList.length; i++){
-		if(sameValues(primitive, paperObjList[i], name) == true)
+		if(sameValues(primitive, paperObjList[i]) == true)
 			return i;
 	}
 	return -1;
@@ -692,6 +680,7 @@ function newObject(primitive, paperObjList, name){
 function scoreStrokes(strokes){
 	for(var i=0; i<strokes.length; i++){
 		var current_stroke = Stroke_List[strokes[i].idnum];
+		current_stroke.scores = [];
 		for(var j=0; j<Stroke_List.length; j++) {
 			if(current_stroke.id != Stroke_List[j].id) {
 				current_scoring = new StrokeCompare(strokes[i], Stroke_List[j], Stroke_List[j].points);
@@ -749,6 +738,7 @@ function findStrokeCombos(stroke, topNum){
 	//make sure the current stroke is present in all of them
 	for(var k=0; k<allCombos.length; k++) {
 		allCombos[k].push({idnum:stroke.idnum, points:stroke.points});
+		allCombos[k].sort(function(a, b){return a.idnum-b.idnum});
 		fullCombos.push(allCombos[k]);
 	}
 	//this stroke alone
@@ -797,6 +787,17 @@ function recognizeStrokes(combos, prevCombos){
 	return results;
 }
 
+function combineArrays(arr){
+	var out = [];
+	for(var i=0; i<arr.length; i++){
+		for(var j=0; j<arr[i].length; j++){
+			out.push(arr[i][j]);
+		}
+	}
+	return out;
+}
+
+//choose the best ones from scores
 function recognizePrimitives(strokelist, scores){
 	var i=0;
 	var results = [], matched = [], chosenCombos = [];
@@ -825,6 +826,27 @@ function recognizePrimitives(strokelist, scores){
 		i++;
 		chosen = true;
 	}
+	var allStrokes = [];
+	for(var i=0; i<Stroke_List.length; i++){
+		if(Stroke_List[i].removed == false){
+			allStrokes.push(i);
+		}
+	}
+	//find out which ones haven't been chosen (got stolen away)
+	//readd those
+	var diff = arrayDifference(allStrokes, matched);
+	if(diff.length > 0){
+		var newScores = [];
+		for(var j=0; j<diff.length; j++){
+			var n = scoreStroke([Stroke_List[diff[j]]]);
+			newScores.push(n);
+		}
+		newScores.push(scores);
+		var combineScores = combineArrays(newScores);
+		console.log('someone was left behind', diff.length);
+		return recognizePrimitives(strokelist, combineScores);
+	}
+
 	return {results:results, prevCombos:chosenCombos};
 }
 
@@ -894,7 +916,7 @@ function primitivesToObjects(primitives){
 					else if(secondObj.name == "rect")
 						chosenObj = secondObj;
 
-					var index = newObject(chosenObj, Object_List, templateName);
+					var index = newObject(chosenObj, Object_List);
 					//this is a brand new object
 					if(index == -1){
 						var oId = createObjectId(templateName);
@@ -926,6 +948,7 @@ function primitivesToObjects(primitives){
 //Object placement
 
 //returns array elements that are present in BEFORE but not AFTER
+//DO NOT RETURN THE ONES TAHT ARE THE SAME
 function arrayDifference(before, after) {
 	var result = [];
 	for (var i = 0; i < before.length; i++) {
@@ -936,8 +959,56 @@ function arrayDifference(before, after) {
 	return result;
 }
 
+function arraysEqual(a, b) {
+	if (a === b)
+		return true;
+	if (a == null || b == null)
+		return false;
+	if (a.length != b.length)
+		return false;
+
+	// If you don't care about the order of the elements inside
+	// the array, you should sort both arrays here.
+
+	for (var i = 0; i < a.length; ++i) {
+		if (a[i] !== b[i])
+			return false;
+	}
+	return true;
+}
+
+//returns true is b is in array A (same points means same obj)
+function aContainsB(arr, b){
+	for(var i=0; i<arr.length; i++){
+		if(arraysEqual(arr[i].points, b.points))
+			return true;
+	}
+	return false;
+}
+
+function arrayDifferenceNoDups(before, after) {
+	var result = [];
+	for (var i = 0; i < before.length; i++) {
+		if (!aContainsB(after, before[i])) {
+			result.push(before[i]);
+		}
+	}
+	return result;
+}
+
+function a(objs1, objs2){
+	for(var i=0; i<objs1.length; i++){
+		for(var j=0; j<objs2.length; j++){
+			if(objs1.points == objs2.points){
+				objs1.splice(i, 1);
+				objs2.splice(j, 1);
+			}
+		}
+	}
+}
+
 function deleteOldObjects(oldObjects, newObjects){
-	var toDelete = arrayDifference(oldObjects, newObjects);
+	var toDelete = arrayDifferenceNoDups(oldObjects, newObjects);
 	for(var i=0; i<toDelete.length; i++){
 		//delete obj from paper
 		var obj = toDelete[i];
@@ -955,7 +1026,7 @@ function deleteOldObjects(oldObjects, newObjects){
 }
 
 function placeNewObjects(oldObjects, newObjects){
-	var toAdd = arrayDifference(newObjects, oldObjects);
+	var toAdd = arrayDifferenceNoDups(newObjects, oldObjects);
 	for(var i=0; i<toAdd.length; i++){
 		var obj = toAdd[i];
 		if(obj.name == "wardrobe"){
@@ -970,16 +1041,8 @@ function placeNewObjects(oldObjects, newObjects){
 	}
 }
 
-function objectCleanUp(oldObjs, newObjs){
-	deleteOldObjects(oldObjs, newObjs);
-    placeNewObjects(oldObjs, newObjs);
-    oldObjs = newObjs.slice(0);
-    return oldObjs;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Call the function itself
-
 //can enter in more than 1
 function addStroke(stroke, topNum) {
 	var allNewCombos = [], allScores = [], objectList = [], allPrim = [], allPrim2 = [], allObjs = [];
@@ -1007,6 +1070,21 @@ function addStroke(stroke, topNum) {
 	return allObjs;
 }
 
+function scoreStroke(stroke){
+	//for each stroke sort them and find combinations of top [topNum]
+	scoreStrokes(stroke);
+	var allNewCombos = multipleFindStrokeCombos(stroke, HISTORY_DEPTH);
+	allNewCombos = concatArray(allNewCombos);
+	var allScores = recognizeStrokes(allNewCombos, Prev_Combos_List);
+	return allScores;
+}
+
+function objectCleanUp(oldObjs, newObjs){
+	deleteOldObjects(oldObjs, newObjs);
+    placeNewObjects(oldObjs, newObjs);
+    oldObjs = newObjs.slice(0);
+    return oldObjs;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1023,6 +1101,16 @@ function printTo(results, place, code){
         	output += arr[p].name+' '+JSON.stringify(arr[p].ids)+'<br>'+arr[p].score+'<br>';
     }
     document.getElementById(place).innerHTML =  output;
+}
+
+function testScore(strokeIds){
+	var dollar = new NDollarRecognizer(true);
+	var k = [];
+	for(var i=0; i<strokeIds.length; i++){
+		k.push(Stroke_List[strokeIds[i]].points);
+	}
+	var res = dollar.Recognize(k, true, false, true);
+	return {name:res.Name, score:res.Score};
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1052,13 +1140,13 @@ function showCorners2(ds){
 	}
 }
 
-function deleteObjects(){
-    for(var i=Object_List.length-1; i>=0; i--){
-        var obj = paper.getById(Object_List[i].id);
-        obj.remove();
-        Object_List.pop();
-    }
-}
+// function deleteObjects(){
+//     for(var i=Object_List.length-1; i>=0; i--){
+//         var obj = paper.getById(Object_List[i].id);
+//         obj.remove();
+//         Object_List.pop();
+//     }
+// }
 
 function outputStrokes(){
 	var output = [];

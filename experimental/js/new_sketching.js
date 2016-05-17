@@ -27,9 +27,9 @@ var gridDivisions = 20;
 //starting 
 var northAngle = 0, northX = 235, northY = 5, northWidth = 30, northHeight = 40;
 
-var piece = paper.image("../images/northarrow.png", 0, 0, northWidth, northHeight)
+var northArrow = paper.image("../images/northarrow.png", 0, 0, northWidth, northHeight)
     .attr({cursor: "move", transform: "R" + northAngle + "T" + northX + "," + northY });
-piece.drag(dragMove, dragStart, dragStop);
+northArrow.drag(dragMove, dragStart, dragStop);
 
 // Set up the object for dragging
 function dragStart(){
@@ -37,21 +37,24 @@ function dragStart(){
     this.oy = northY;
     northArrowClick = true;
 }
+
 //what does the arrow do when we let go
 function dragStop() {
     northAngle = angleAwayFromCenter(CANVAS_WIDTH/2,CANVAS_WIDTH/2, northX+15, northY+20);
-    piece.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 500, "<>");
+    document.getElementById('northDir').innerHTML = (northAngle+90);
+    northArrow.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 500, "<>");
     northArrowClick = false;
 }
+
 //follow the mouse
 function dragMove(dx, dy) {
     northX = Math.min(CANVAS_WIDTH-30, this.ox+dx);
     northY = Math.min(CANVAS_HEIGHT-40, this.oy+dy);
     northX = Math.max(0, northX);
     northY = Math.max(0, northY);            
-    piece.attr({ transform: "R" + northAngle + "T" + northX + "," + northY });
+    northArrow.attr({ transform: "R" + northAngle + "T" + northX + "," + northY });
+    
 }
-
 
 function get_strokes(){
     var output = "<div id='listofstrokes'>";
@@ -72,7 +75,7 @@ function get_objects(){
     var output = "<div id='listofobjects'>";
     for(var i=0; i<Object_List.length; i++){
         output = output + "<div id=" + Object_List[i].id +" class= 'sItem' " +
-        "onmouseover='objMouse(this.id, 'over')' onmouseout='objMouse(this.id, 'out')'>"
+        "onmouseover='objMouseOver(this.id)' onmouseout='objMouseOut(this.id)'>"
         + Object_List[i].id + "</div>";
     }
     output += "</div>";
@@ -196,13 +199,14 @@ $(canvas).mouseup(function () {
     //turns path into a processable path based on windowmode, etc.
     var processed = findPrintedPath(startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
-    //find type of line, draw it, save it
-    process_line(processed);
-    var lastStroke = Stroke_List[Stroke_List.length-1];
-    
-    newObjs = processStroke(lastStroke, paper);
-    oldObjs = objectCleanUp(oldObjs, newObjs);
-
+    if(processed != -1){
+        //find type of line, draw it, save it
+        process_line(processed);
+        var lastStroke = Stroke_List[Stroke_List.length-1];
+        
+        newObjs = processStroke(lastStroke, paper);
+        oldObjs = objectCleanUp(oldObjs, newObjs);
+    }
     get_strokes();
     get_objects();
 
@@ -224,19 +228,19 @@ $(canvas).mousemove(function (e) {
     endPoint = new Point(x,y);
     lineLength += distance(new Point(lastX, lastY), new Point(x,y));
     
-    //straight line mode
-    // if(shiftDown||windowMode){
-    //     var newPathString = pointsToPath([startPoint, new Point(x, y)]);
-    //     path.attr('path', newPathString);
-    //     if(windowMode){
-    //         path.attr({"stroke": "#0EBFE9", "stroke-width": 5});
-    //     }
-    //     endPoint = new Point(e.offsetX, e.offsetY);
-    // }
-    // else {
+    // straight line mode
+    if(shiftDown||windowMode){
+        var newPathString = pointsToPath([startPoint, new Point(x, y)]);
+        path.attr('path', newPathString);
+        if(windowMode){
+            path.attr({"stroke": "#0EBFE9", "stroke-width": 5});
+        }
+        endPoint = new Point(e.offsetX, e.offsetY);
+    }
+    else {
         pathString += 'l' + (x - lastX) + ' ' + (y - lastY);
         path.attr('path', pathString);
-    // }
+    }
     lastX = x;
     lastY = y;
 });
@@ -378,6 +382,10 @@ function save_line(pts, idnum, idname, type){
     // console.log(0.111);
     var resizeNum = calcResize(lineLength, RESAMPLE_SIZE, RESAMPLE_LEN_PER_SEGMENT);
     Stroke_List.push(new Stroke(idname, idnum, pts, resizeNum, type));
+    if(type == 'window'){
+        var s = findById(Stroke_List, clickedOn);
+        Stroke_List[s.idnum].windows.push(idname);
+    }
     // console.log(0.112);
 }
 

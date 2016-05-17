@@ -230,6 +230,8 @@ function findObjectFriends(idnum){
     var str = Stroke_List[idnum];
     var output = [];
     var object = findObjectById(idnum);
+    if(object == -1)
+        return [];
     var ids = combineArraysExcept(object.strokes, idnum);
     for(var a=0; a<ids.length; a++){
         output.push(Stroke_List[ids[a]]);
@@ -298,10 +300,21 @@ function overwrite(lastStroke){
     return -1;
 }
 
-function findCloser(pt, choice1, choice2){
-    if(distance(pt, choice1) < distance(pt, choice2))
+function findCloser(sPt, choice1, choice2){
+    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2);
+    if(d1 > d2)
+        return choice2;
+    else
         return choice1;
-    return choice2;
+}
+
+function findCloser2(sPt, ePt, choice1, choice2){
+    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2),
+        d3 = distance(ePt, choice1), d4 = distance(ePt, choice2);
+    if(d1 > d3)
+        return choice1;
+    else
+        return choice2;
 }
 
 function travelLine(slope, length, start, closeTo){
@@ -319,7 +332,7 @@ function findEndPoint(startPt, endPt, strokeId, length){
     var wallStroke = Stroke_List[index];
     var slope = wallStroke.bestFitLine.slope;
     
-    var wallEnd = findCloser(endPt, wallStroke.points[0], wallStroke.points[wallStroke.points.length-1]);
+    var wallEnd = findCloser2(startPt, endPt, wallStroke.points[0], wallStroke.points[wallStroke.points.length-1]);
     var windEnd = travelLine(slope, length, startPt, endPt);
     var windLen = distance(startPt, endPt);
     
@@ -335,11 +348,12 @@ function findEndPoint(startPt, endPt, strokeId, length){
 
     var k = withinPercent(a1, a2);
     var j = withinDiff(a1, a2);
-    //console.log(a1, a2, k, j);
-    //window is too long
+
+    //window angle is too much, don't create it
     if( k > .3 && j > .5){
         return -1;
     }
+    //window is too long
     if(distance(startPt, wallEnd) < windLen){
         var newWindEnd = travelLine(slope, wallStroke.length/20, wallEnd, startPt);
         return newWindEnd;
@@ -353,11 +367,13 @@ function findEndPoint(startPt, endPt, strokeId, length){
 function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
     var simplified;
     if(windowMode) {
+        console.log('window Path');
         var calcEnd = findEndPoint(startPoint, endPoint, clickedOn, distance(startPoint, endPoint));
+        console.log('window', startPoint, endPoint, calcEnd);
         if(calcEnd == -1){
             path.remove();
             windowMode = false;
-            return;
+            return -1;
         } 
         simplified = Resample([startPoint, calcEnd], RESAMPLE_SIZE);
     }
@@ -385,19 +401,34 @@ function deleteStroke(strokenum, paper){
     //paper.getById(Stroke_List[strokenum].id).remove();
 
     //delete the object from the canvas
-    //var obj = findObjectById(strokenum);
+    var obj = findObjectById(strokenum);
     //paper.getById(obj.id).remove();
 
     //delete the object from prev combos list
     Prev_Combos_List = deleteIdPrevCombosList(strokenum);
 
+    //delete windows along with the wall
+    var strWindows = Stroke_List[strokenum].windows;
+    if(strWindows.length > 0){
+        for(var i=0; i<strWindows.length; i++){
+            paper.getById(strWindows[i]).remove();
+            var w = findById(Stroke_List, strWindows[i]);
+            Stroke_List[w.idnum].removed = true;
+        }
+    }
+
     //find other strokes it was connected with (if any)
     var friends = findObjectFriends(strokenum);
     console.log('looks like we deleted something', friends.length);
+    for(var i=0; i<Object_List.length; i++){
+        if(Object_List[i].id != obj.id)
+            newObjs.push(Object_List[i]);
+    }
     if(friends.length > 0){
-        newObjs = addStroke(friends, 5);
+        newObjs = addStroke(friends, HISTORY_DEPTH);
         console.log("redone", newObjs);
     }
+    
 
     return newObjs;
 }
@@ -408,7 +439,7 @@ function processStroke(lastStroke, paper){
 
     //finds current list of objects
     if(deleted == -1){
-        newObjs = addStroke([lastStroke], 5);
+        newObjs = addStroke([lastStroke], HISTORY_DEPTH);
     }
     else{
         newObjs = deleteStroke(deleted, paper);

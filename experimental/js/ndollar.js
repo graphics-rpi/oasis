@@ -189,9 +189,6 @@ function NDollarRecognizer(useBoundedRotationInvariance) // constructor
 	this.Multistrokes[6] = new Multistroke("W", useBoundedRotationInvariance, new Array(
 		new Array(new Point(500,100),new Point(520,180),new Point(550,150),new Point(580,180),new Point(600,100))
 	));
-	this.Multistrokes[7] = new Multistroke("N", useBoundedRotationInvariance, new Array(
-		new Array(new Point(200,200),new Point(200,100),new Point(275,200),new Point(580,180))
-	));
 	
 	//
 	// The $N Gesture Recognizer API begins here -- 3 methods: Recognize(), AddGesture(), and DeleteUserGestures()

@@ -33,14 +33,17 @@
 				<div id="underpanel">
 					<div class="underpanelbox">
 						<form id= "error_report" method="post">
-							Name/Desc? <input type="text" name="name" id="name"><br>
-							What is wrong? <input type="text" name="desc" id="desc"><br>
+							Name <input type="text" name="name" id="name"><br>
+							Describe what is wrong: <input type="text" name="desc" id="desc"><br>
 							<input type="submit" value="submit"></input>
 						</form>
 					</div>
 					<div class="underpanelbox">
-						<textarea rows="4" cols="25" id="textplace"></textarea>
+						<textarea rows="4" cols="20" id="textplace"></textarea>
 						<button id='testinput'>Test it</button>
+					</div>
+					<div class="underpanelbox">
+						North Arrow Direction: <br><span id="northDir">90</span>
 					</div>
 				</div>
 			</div>
