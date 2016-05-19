@@ -12,18 +12,27 @@ ObjectTemplates.push(new ObjectTemplate("wardrobe", ["rect", "W"]));
 ObjectTemplates.push(new ObjectTemplate("bed", ["rect", "B"]));
 ObjectTemplates.push(new ObjectTemplate("desk", ["rect", "D"]));
 
+var FurnitureTemplates = [];
+FurnitureTemplates.push(new FurnitureTemplate('bed','twin',100,200));
+FurnitureTemplates.push(new FurnitureTemplate('bed','full',138,200));
+FurnitureTemplates.push(new FurnitureTemplate('bed','queen',150,213));
+FurnitureTemplates.push(new FurnitureTemplate('bed','king',200,213));
+
+FurnitureTemplates.push(new FurnitureTemplate('wardrobe','small',150,200));
+FurnitureTemplates.push(new FurnitureTemplate('wardrobe','large',200,300));
+
 function Stroke(id, idnum, pts, resampleSize, type){
 	this.id = id;
 	this.idnum = idnum;
     this.type = type;
 	this.length = strokeLength(pts);
-	//this.points = Resample(pts, resampleSize);
 	this.points = pts;
 	this.numPoints = this.points.length;
 	this.center = centroid(pts);
 	this.corners = shortStraw(this.points);
 	this.cornerIds = createCornerMarkers(this.corners);
 	this.bestFitLine = leastSquares(this.points);
+	this.lengthRatio = lengthRatio(this.points, this.length);
     this.removed = false;
     this.windows = [];
     this.scores = [];
@@ -73,9 +82,15 @@ function ObjectTemplate(name, primitives){
 	this.primitives = primitives;
 }
 
+function FurnitureTemplate(name, size, h, w){
+	this.name = name;
+	this.size = size;
+	this.height = h;
+	this.width = w;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Stroke Functions
-
 
 //the center point of all points entered
 function centroid(points){
@@ -212,6 +227,11 @@ function pointSimplification(points, n){
 	return output;
 }
 
+function lengthRatio(points, len){
+	var eucD = distance(points[0], points[points.length-1]);
+	var pathD = len;
+	return eucD/pathD;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //Point Manuipulation
 
@@ -446,19 +466,15 @@ function drawRectangle(object, color){
 
 
     var d = bestFitRect(object, h, w);
-    //var d = rectScore(rotateSet(object.points,object.center, angle), {cx:object.center.x, cy:object.center.y, w:w, h:h});
-    //var newangle = d.rect.angle;
-    //console.log(d);
-
-    //console.log("[0]", Math.round(corners[0].x), Math.round(corners[0].y), "[1]", Math.round(corners[1].x), Math.round(corners[1].y),
-    	//"[2]", Math.round(corners[2].x), Math.round(corners[2].y), "[3]", Math.round(corners[3].x), Math.round(corners[3].y));
-    //console.log("H", Math.round(h), "W", Math.round(w), "C", Math.round(center.x), Math.round(center.y), "A", angle);
-    //var angle = leastSquares(corners)['slope'];
-    //draw square
-   	//drawQuad(center.x-(w/2), center.y-(h/2), w, h, angle, color, id);
+    // var d = bestFixedSizeRect(object, 'wardrobe');
    	console.log(d);
-   	//console.log(h, w, angle);
+
     drawQuad(d.rect.cx-(d.rect.w/2), d.rect.cy-(d.rect.h/2), d.rect.w, d.rect.h, (360-d.rect.angle), color, id);
+}
+
+function drawRectSimple(rect, color){
+	var id = 'test';
+	drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -603,11 +619,72 @@ function iterativeScoring(points, rect, prevScore, inc){
 	}
 }
 
+function iterativeScoringFixedSize(points, rect, prevScore, inc){
+	var aInc = incrementCalc(inc,'angle'), whInc = incrementCalc(inc,'wh'), xyInc = incrementCalc(inc,'xy');
+	//score the current rect
+	var output = [], results = [];
+	var rects = [{cx:rect.cx, cy:rect.cy, w:rect.w, h:rect.h, angle:rect.angle+aInc},
+		{cx:rect.cx, cy:rect.cy, w:rect.w, h:rect.h, angle:rect.angle-aInc},
+		{cx:rect.cx+xyInc, cy:rect.cy, w:rect.w, h:rect.h, angle:rect.angle},
+		{cx:rect.cx, cy:rect.cy+xyInc, w:rect.w, h:rect.h, angle:rect.angle},
+		{cx:rect.cx-xyInc, cy:rect.cy, w:rect.w, h:rect.h, angle:rect.angle},
+		{cx:rect.cx, cy:rect.cy-xyInc, w:rect.w, h:rect.h, angle:rect.angle}];
+
+	var actions = ['+angle','-angle','+xaxis','+yaxis','-xaxis','-yaxis'];
+	for(var i=0; i<rects.length; i++){
+		results.push({rect:rects[i], score:rectScore(points, rects[i]), action:actions[i]});
+	}
+	results.sort(function(a,b){return a.score-b.score});
+
+	//there is a better one (pick the best of all options)
+	if(inc > 500){
+		console.log('max stack size');
+		return {rect:rect, score:prevScore};
+	}
+	if(results[0].score < prevScore){
+		return iterativeScoring(points, results[0].rect, results[0].score, inc+1);
+	}
+	else{
+		return {rect:rect, score:prevScore};
+	}
+}
+
 function bestFitRect(object, h, w){
     var firstTry = {cx:object.center.x, cy:object.center.y, w:10, h:10, angle:0};
     var pts = object.simplifiedPoints;
 	var out1 = iterativeScoring(pts, firstTry, 999999, 0);
 	return out1;
+}
+
+function bestFixedSizeRect(object, furnitureName){
+	var furns = [], sizeScores = [], bestScore = 9999999, bestIndex = 0;
+	for(var i=0; i<FurnitureTemplates.length; i++){
+		var ft = FurnitureTemplates[i];
+		if(ft.name == furnitureName){
+			furns.push({cx:object.center.x, cy:object.center.y, w:ft.width, h:ft.height, angle:0})
+		}
+	}
+
+    var pts = object.simplifiedPoints.slice(0, object.simplifiedPoints.length);
+    for(var i=0; i<furns.length; i++){
+    	sizeScores.push(iterativeScoringFixedSize(pts, furns[i], 999999, 0));
+    }
+    for(var i=0; i<sizeScores.length; i++){
+    	if(sizeScores.score < bestScore){
+    		bestIndex = i;
+    		bestScore = sizeScores.score;
+    	}
+    }
+	return sizeScores[bestIndex];
+}
+
+function testRecursiveScoring(strokes){
+	var p = combineStrokes(strokes);
+	var ce = centroid(p);
+	var r = {cx:ce.x, cy:ce.y, w:10, h:10, angle:0};
+	var f = iterativeScoring(p, r, 999999, 0);
+	drawRectSimple(f.rect, '#FF0000');
+	return f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -944,6 +1021,76 @@ function primitivesToObjects(primitives){
 	return objects;
 }
 
+function lineLengthCheck(strokes){
+	for(var i=0; i<strokes.length; i++){
+		if(Stroke_List[strokes[i]].lengthRatio < .9){
+			return false;
+		}
+	}
+	return true;
+}
+
+function lineEndingsCheck(strokes){
+	var endings = [], pairs = [], found = false;
+	for(var i=0; i<strokes.length; i++){
+		var s = Stroke_List[strokes[i]];
+		endings.push({point: Stroke_List[strokes[i]].points[0], id: strokes[i]});
+		endings.push({point: Stroke_List[strokes[i]].points[Stroke_List[strokes[i]].points.length-1], id: strokes[i]});
+	}
+	for(var i=0; i<endings.length-1; i++){
+		for(var j=i+1; j<endings.length; j++){
+			var b = distance(endings[i].point, endings[j].point);
+			if(b < 50 && endings[i].id != endings[j].id){
+				pairs.push({p1:endings[i], p2:endings[j]});
+				endings.splice(j,1);
+				found = true;
+			}
+			if(found == true){
+				found = false;
+				break;
+			}
+		}
+	}
+	if(pairs.length != strokes.length){
+		return [];
+	}
+	return pairs;
+}
+
+function lineRightAngleCheck(pairs){
+	var corners = [], angles = [];;
+	var sumpercent = 0;
+	for(var i=0; i<pairs.length; i++){
+		corners.push({x:(pairs[i].p1.point.x + pairs[i].p2.point.x)/2, y:(pairs[i].p1.point.y + pairs[i].p2.point.y)/2});
+	}
+
+	for(var i=0; i<corners.length; i++)
+		angles.push(angle2PointsFixedPoint(corners[i], corners[(i+1)%4], corners[(i+2)%4]));
+
+	var avg = sumArray(angles)/pairs.length;
+	
+	for(var i=0; i<angles.length; i++)
+		sumpercent += Math.abs((angles[i] - avg)/avg);
+
+	sumpercent = sumpercent/pairs.length;
+	return sumpercent;
+}
+
+
+
+function rectangleScore(strokes){
+	//all lines are close to lines
+	var a = lineLengthCheck(strokes);
+	//all line endings are close to another line ending
+	var b = lineEndingsCheck(strokes);
+	//corners are 90 degree angles
+	//average the line endings together - is corner
+	var c = lineRightAngleCheck(b);
+	//corner distances are close to equal
+	console.log(a, b, c);
+
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Object placement
 
@@ -1139,14 +1286,6 @@ function showCorners2(ds){
 		}
 	}
 }
-
-// function deleteObjects(){
-//     for(var i=Object_List.length-1; i>=0; i--){
-//         var obj = paper.getById(Object_List[i].id);
-//         obj.remove();
-//         Object_List.pop();
-//     }
-// }
 
 function outputStrokes(){
 	var output = [];

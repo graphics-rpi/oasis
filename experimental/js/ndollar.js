@@ -197,7 +197,6 @@ function NDollarRecognizer(useBoundedRotationInvariance) // constructor
 	{
 		var points = CombineStrokes(strokes); // make one connected unistroke from the given strokes
 		points = Resample(points, NumPoints);
-		//console.log(points);
 		var radians = IndicativeAngle(points);
 		points = RotateBy(points, -radians);
 		points = ScaleDimTo(points, SquareSize, OneDThreshold);
@@ -327,8 +326,9 @@ function Resample(points, n)
 		{
 			var qx = points[i - 1].X + ((I - D) / d) * (points[i].X - points[i - 1].X);
 			var qy = points[i - 1].Y + ((I - D) / d) * (points[i].Y - points[i - 1].Y);
-			//console.log(qx, qy);
-			var q = new Point(qx, qy);
+			var qxp = parseFloat(qx.toFixed(3));
+			var qyp = parseFloat(qy.toFixed(3));
+			var q = new Point(qxp, qyp);
 			newpoints[newpoints.length] = q; // append new point 'q'
 			points.splice(i, 0, q); // insert 'q' at position i in points s.t. 'q' will be the next i
 			D = 0.0;

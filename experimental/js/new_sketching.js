@@ -21,6 +21,7 @@ var d = new Date();
 var closeEnough = [];
 
 var gridDivisions = 20;
+
 //var Grid = new CanvasGrid(canvasWidth, canvasHeight, gridDivisions, gridDivisions);
 //practicegrid(gridDivisions);
 
@@ -184,6 +185,7 @@ $(canvas).mousedown(function (e) {
 });
 
 $(canvas).mouseup(function () {
+    var d1 = new Date();
     if(northArrowClick == true)
         return;
     mousedown = false;
@@ -203,16 +205,18 @@ $(canvas).mouseup(function () {
         //find type of line, draw it, save it
         process_line(processed);
         var lastStroke = Stroke_List[Stroke_List.length-1];
-        
+        var d2 = new Date();
+        console.log(d2.getTime()-d1.getTime());
         newObjs = processStroke(lastStroke, paper);
         oldObjs = objectCleanUp(oldObjs, newObjs);
+        var d3 = new Date();
+        console.log(d3.getTime()-d2.getTime());
     }
     get_strokes();
     get_objects();
 
     lastpath = [];
     windowMode = false;
-    //console.log("Mouse up complete");
 });
 
 $(canvas).mousemove(function (e) {
@@ -286,7 +290,6 @@ $(document).keyup(function(e) {
     }
     //1
     if(e.keyCode == 49 ){
-        // alert('hello');
         showCorners(Stroke_List);
     }
     //2
