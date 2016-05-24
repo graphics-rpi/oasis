@@ -32,7 +32,7 @@ while($valid_id == False)
   // Generate alphanum ID
   $str = "";
   $length = 6;
-  $characters = array_merge(range('A','Z'), range('a','z'), range('0','9'));
+  $characters = array_merge(range('a','z'));
   $max = count($characters) - 1;
   for ($i = 0; $i < $length; $i++) {
     $rand = mt_rand(0, $max);

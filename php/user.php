@@ -467,7 +467,9 @@ class User
     
     for ($i = count($title_arr)-1; $i >= 0; --$i)
     {
-      $current_item = '<li><a onclick=\'load_previous_model('.$unique_id_arr[ $i ].');\' href="javascript:void(0);">' . $title_arr[$i] . '</a></li>';
+      $current_item_fmt = '<li><a onclick=\'load_previous_model("%s");\' href="javascript:void(0);">%s</a></li>';
+      $current_item = sprintf($current_item_fmt, $unique_id_arr[$i], $title_arr[$i]);
+      // $current_item = '<li><a onclick=\'load_previous_model('.$unique_id_arr[ $i ].');\' href="javascript:void(0);">' . $title_arr[$i] . '</a></li>';
       
       $generated_html = $generated_html . $current_item;
     }
@@ -485,17 +487,23 @@ class User
     $user_renov_num = $this->workingModel->user_renov_num;
 
     // Save to meta database
-    $sql_cmd = "INSERT INTO model_meta VALUES ('$id', '$title','$this->username' ,$user_model_num, $user_renov_num );";
+    $sql_cmd = "INSERT INTO model_meta VALUES ($1, $2, $3 ,$4, $5 )";
     error_log('sql_cmd: '.$sql_cmd);
-    pg_query($sql_cmd) or die("Failed to save to model meta database");
+    // pg_query($sql_cmd) or die("Failed to save to model meta database");
+    pg_query_params($sql_cmd,array(
+      $id,
+      $title,
+      $this->username,
+      $user_model_num,
+      $user_renov_num)) or die("Failed to save to model meta database");
 
     // ERROR: When Create new model, update_model_db
     $wallfile_txt = $this->workingModel->wallfile_txt;
     $paths_txt    = $this->workingModel->paths_txt;
 
-    $sql_cmd = "INSERT INTO model_data VALUES ($id, '$wallfile_txt' , '$paths_txt' );";
+    $sql_cmd = "INSERT INTO model_data VALUES ($1, $2 , $3 )";
     error_log('sql_cmd: '.$sql_cmd);
-    pg_query($sql_cmd) or die("Failed to save to model data database");
+    pg_query_params($sql_cmd,array( $id,$wallfile_txt,$paths_txt)) or die("Failed to save to model data database");
   }
 
   function sortByCreationTime($file_1, $file_2)

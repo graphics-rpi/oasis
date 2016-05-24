@@ -952,7 +952,7 @@ function sketching_ribbon_handler(event_str)
       dataType: 'json',
       data: {},
       success: function(e) {
-        alert(e.stat);
+        // alert(e.stat);
         // Callback function after checking if there is output for us in the slow folder
         var stat = e.stat; // "true" or "false"
 
