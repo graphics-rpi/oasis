@@ -479,31 +479,37 @@ class User
     return $generated_html;
   }
 
+  //Returns an array representing the tuple inserted into the database.
+  //row[0] = id, row[1] = title, row[2] = username, row[3] = user_model_num, row[4] = user_renov_num
   function save_to_database()
-  {
-    $id             = $this->workingModel->id;
-    $title          = $this->workingModel->title;
-    $user_model_num = $this->workingModel->user_model_num;
-    $user_renov_num = $this->workingModel->user_renov_num;
+  {	   
+    $title 				= $this->workingModel->title;
+    $userModelNumber 	= $this->workingModel->user_model_num;
+    $wallfile 			= $this->workingModel->wallfile_txt;
+    $paths 				= $this->workingModel->paths_txt;
 
-    // Save to meta database
-    $sql_cmd = "INSERT INTO model_meta VALUES ($1, $2, $3 ,$4, $5 )";
-    error_log('sql_cmd: '.$sql_cmd);
-    // pg_query($sql_cmd) or die("Failed to save to model meta database");
-    pg_query_params($sql_cmd,array(
-      $id,
-      $title,
-      $this->username,
-      $user_model_num,
-      $user_renov_num)) or die("Failed to save to model meta database");
+    $sqlCmd = "SELECT * FROM insert_model($1, $2, $3, $4, $5);";
+    error_log('sql_cmd: '.$sqlCmd);
 
-    // ERROR: When Create new model, update_model_db
-    $wallfile_txt = $this->workingModel->wallfile_txt;
-    $paths_txt    = $this->workingModel->paths_txt;
+    $insertedModel = pg_query_params($sqlCmd, array($title, $this->username, $userModelNumber, $wallfile, $paths)) or die("Failed to save to model to database");
 
-    $sql_cmd = "INSERT INTO model_data VALUES ($1, $2 , $3 )";
-    error_log('sql_cmd: '.$sql_cmd);
-    pg_query_params($sql_cmd,array( $id,$wallfile_txt,$paths_txt)) or die("Failed to save to model data database");
+    if(pg_num_rows($insertedModel) == 1)
+    {
+    	$row = pg_fetch_row($insertedModel);
+    	$this->workingModel->id = $row[0];
+    	$this->workingModel->title = $row[1];
+    	
+    	$this->workingModel->user_model_num = $row[3];
+    	$this->workingModel->user_renov_num = $row[4];
+    }
+
+	pg_query_params('INSERT INTO error_table VALUES($1,$2,$3,$4,$5)', array(
+      date("Y-m-d").'|'.date("h:i:sa"),
+      $username,
+      "",
+      "save to database end",
+      ""
+    ));
   }
 
   function sortByCreationTime($file_1, $file_2)
