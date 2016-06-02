@@ -25,7 +25,7 @@ var gridDivisions = 20;
 //var Grid = new CanvasGrid(canvasWidth, canvasHeight, gridDivisions, gridDivisions);
 //practicegrid(gridDivisions);
 
-//starting 
+//starting
 var northAngle = 0, northX = 235, northY = 5, northWidth = 30, northHeight = 40;
 
 var northArrow = paper.image("../images/northarrow.png", 0, 0, northWidth, northHeight)
@@ -52,9 +52,9 @@ function dragMove(dx, dy) {
     northX = Math.min(CANVAS_WIDTH-30, this.ox+dx);
     northY = Math.min(CANVAS_HEIGHT-40, this.oy+dy);
     northX = Math.max(0, northX);
-    northY = Math.max(0, northY);            
+    northY = Math.max(0, northY);
     northArrow.attr({ transform: "R" + northAngle + "T" + northX + "," + northY });
-    
+
 }
 
 function get_strokes(){
@@ -97,7 +97,7 @@ function strokeMouseOut(idn, type) {
         obj.attr({"stroke":"#000000", "stroke-width":3});
     else
         obj.attr({"stroke":"#0EBFE9", "stroke-width":5});
-    
+
 }
 
 //sidebar for objects
@@ -116,6 +116,7 @@ function objMouseOver(idn) {
         }
     }
 }
+
 function objMouseOut(idn) {
     var obj = paper.getById(idn);
     var strokes = getStrokesFromObject(idn);
@@ -172,7 +173,7 @@ $(canvas).mousedown(function (e) {
 
         var x = e.offsetX, y = e.offsetY;
         lineLength = 0;
-        
+
         startPoint = new Point(x,y);
         lastpath.push(new Point(x, y));
 
@@ -201,16 +202,15 @@ $(canvas).mouseup(function () {
     //turns path into a processable path based on windowmode, etc.
     var processed = findPrintedPath(startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
-    if(processed != -1){
-        //find type of line, draw it, save it
-        process_line(processed);
-        var lastStroke = Stroke_List[Stroke_List.length-1];
-        var d2 = new Date();
-        console.log(d2.getTime()-d1.getTime());
-        newObjs = processStroke(lastStroke, paper);
-        oldObjs = objectCleanUp(oldObjs, newObjs);
-        var d3 = new Date();
-        console.log(d3.getTime()-d2.getTime());
+    process_line(processed);
+    var rectStrokes = [];
+    if(Stroke_List.length > 3){
+        rectStrokes = rectangleScore(Stroke_List);
+    }
+    console.log(rectStrokes);
+    deleteAllObjects(paper);
+    for(var i=0; i<rectStrokes.length; i++){
+        drawRectangleStrokes(rectStrokes[i],'#FF0000');
     }
     get_strokes();
     get_objects();
@@ -227,11 +227,11 @@ $(canvas).mousemove(function (e) {
         return;
     }
     var x = e.offsetX, y = e.offsetY;
-    
+
     lastpath.push(new Point(x,y));
     endPoint = new Point(x,y);
     lineLength += distance(new Point(lastX, lastY), new Point(x,y));
-    
+
     // straight line mode
     if(shiftDown||windowMode){
         var newPathString = pointsToPath([startPoint, new Point(x, y)]);
@@ -308,7 +308,8 @@ $('#newtemplate').click(function (e) {
     $.ajax({
         type : 'POST',
         url  : '../php/add_template.php',
-        data : {'name':document.getElementById('strokename').value, 'stroke':JSON.stringify(reorder(resample(simplify(lastpath, 1.5), 24)))},
+        data : {'name':document.getElementById('strokename').value,
+        'stroke':JSON.stringify(reorder(resample(simplify(lastpath, 1.5), 24)))},
         success :  function(data) {
             $("#strokelist").load("../php/read_templates.php");
             document.getElementById('spoints').innerHTML = data;

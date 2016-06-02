@@ -28,6 +28,8 @@ function Stroke(id, idnum, pts, resampleSize, type){
 	this.length = strokeLength(pts);
 	this.points = pts;
 	this.numPoints = this.points.length;
+	this.midpoint = {x:(this.points[0].x + this.points[this.points.length-1].x)/2,
+						y:(this.points[0].y + this.points[this.points.length-1].y)/2};
 	this.center = centroid(pts);
 	this.corners = shortStraw(this.points);
 	this.cornerIds = createCornerMarkers(this.corners);
@@ -231,6 +233,31 @@ function lengthRatio(points, len){
 	var eucD = distance(points[0], points[points.length-1]);
 	var pathD = len;
 	return eucD/pathD;
+}
+
+//given an array of strokes return an array of all points
+function getAllPoints(strokes){
+	var output = [];
+	for(var i=0; i<strokes.length; i++){
+		for(var j=0; j<strokes[i].points.length; j++){
+			output.push(strokes[i].points[j]);
+		}
+	}
+	return output;
+}
+
+function getStrokesById(strokeIds){
+	var output = [];
+	for(var i=0; i<strokeIds.length; i++){
+		output.push(Stroke_List[strokeIds[i]]);
+	}
+	return output;
+}
+
+function createShapeId(type){
+	var id = type + '_' + objidcount;
+	objidcount++;
+	return id;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //Point Manuipulation
@@ -460,12 +487,7 @@ function drawRectangle(object, color){
 	if(corners.length != 4)
 		return "ERROR";
 
-    var h = (distance(corners[0], corners[1]) + distance(corners[2], corners[3]))/2;
-    var w = (distance(corners[1], corners[2]) + distance(corners[3], corners[0]))/2;
-    var angle = reverseRotate(corners, center, h, w);
-
-
-    var d = bestFitRect(object, h, w);
+    var d = bestFitRect(object);
     // var d = bestFixedSizeRect(object, 'wardrobe');
    	console.log(d);
 
@@ -475,6 +497,14 @@ function drawRectangle(object, color){
 function drawRectSimple(rect, color){
 	var id = 'test';
 	drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
+}
+
+function drawRectangleStrokes(strokes, color){
+	var str = getStrokesById(strokes);
+	var r = bestFitRectStrokes(str);
+	var id = createShapeId('rect');
+	Object_List.push(id);
+	drawQuad(r.rect.cx-(r.rect.w/2), r.rect.cy-(r.rect.h/2), r.rect.w, r.rect.h, (360-r.rect.angle), color, id);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -649,9 +679,17 @@ function iterativeScoringFixedSize(points, rect, prevScore, inc){
 	}
 }
 
-function bestFitRect(object, h, w){
+function bestFitRect(object){
     var firstTry = {cx:object.center.x, cy:object.center.y, w:10, h:10, angle:0};
     var pts = object.simplifiedPoints;
+	var out1 = iterativeScoring(pts, firstTry, 999999, 0);
+	return out1;
+}
+
+function bestFitRectStrokes(strokes){
+	var pts = getAllPoints(strokes);
+	var cent = centroid(pts);
+    var firstTry = {cx:cent.x, cy:cent.y, w:10, h:10, angle:0};
 	var out1 = iterativeScoring(pts, firstTry, 999999, 0);
 	return out1;
 }
@@ -685,7 +723,7 @@ function testRecursiveScoring(strokes){
 	var f = iterativeScoring(p, r, 999999, 0);
 	drawRectSimple(f.rect, '#FF0000');
 	return f;
-}
+} 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1021,21 +1059,24 @@ function primitivesToObjects(primitives){
 	return objects;
 }
 
+//check to make sure they are all 'lines'
+//aka the length of the stroke is close to start/end distance
 function lineLengthCheck(strokes){
 	for(var i=0; i<strokes.length; i++){
-		if(Stroke_List[strokes[i]].lengthRatio < .9){
+		if(strokes[i].lengthRatio < .9){
 			return false;
 		}
 	}
 	return true;
 }
 
+//checks that all the line endings are close to at least 1 other end point
 function lineEndingsCheck(strokes){
 	var endings = [], pairs = [], found = false;
 	for(var i=0; i<strokes.length; i++){
 		var s = Stroke_List[strokes[i]];
-		endings.push({point: Stroke_List[strokes[i]].points[0], id: strokes[i]});
-		endings.push({point: Stroke_List[strokes[i]].points[Stroke_List[strokes[i]].points.length-1], id: strokes[i]});
+		endings.push({point: strokes[i].points[0], id: strokes[i]});
+		endings.push({point: strokes[i].points[strokes[i].points.length-1], id: strokes[i]});
 	}
 	for(var i=0; i<endings.length-1; i++){
 		for(var j=i+1; j<endings.length; j++){
@@ -1057,39 +1098,77 @@ function lineEndingsCheck(strokes){
 	return pairs;
 }
 
-function lineRightAngleCheck(pairs){
-	var corners = [], angles = [];;
-	var sumpercent = 0;
-	for(var i=0; i<pairs.length; i++){
-		corners.push({x:(pairs[i].p1.point.x + pairs[i].p2.point.x)/2, y:(pairs[i].p1.point.y + pairs[i].p2.point.y)/2});
+//check that the angles are close to right angles
+function lineRightAngleCheck(strokes){
+	var s = strokes.slice(0);
+	var center = centroid(strokes);
+	var output = [];
+	s.sort(function(a,b){return angleAwayFromCenter(center.x, center.y, b.midpoint.x, b.midpoint.y)
+		- angleAwayFromCenter(center.x, center.y, a.midpoint.x, a.midpoint.y);});
+	for(var i=0; i<s.length; i++){
+		var s1 = s[i].bestFitLine.slope;
+		var s2 = s[(i+1)%s.length].bestFitLine.slope;
+		output.push(Math.abs(Math.atan(Math.abs(s1-s2)/(1+(s1*s2)))* 180 / Math.PI)%90);
 	}
+	var sum = sumArray(output);
 
-	for(var i=0; i<corners.length; i++)
-		angles.push(angle2PointsFixedPoint(corners[i], corners[(i+1)%4], corners[(i+2)%4]));
-
-	var avg = sumArray(angles)/pairs.length;
-	
-	for(var i=0; i<angles.length; i++)
-		sumpercent += Math.abs((angles[i] - avg)/avg);
-
-	sumpercent = sumpercent/pairs.length;
-	return sumpercent;
+	return withinPercent(sum/4, 90);
 }
 
-
+function k_combinations(set, k) {
+	var i, j, combs, head, tailcombs;	
+	if (k > set.length || k <= 0) {
+		return [];
+	}
+	if (k == set.length) {
+		return [set];
+	}
+	if (k == 1) {
+		combs = [];
+		for (i = 0; i < set.length; i++) {
+			combs.push([set[i]]);
+		}
+		return combs;
+	}
+	combs = [];
+	for (i = 0; i < set.length - k + 1; i++) {
+		// head is a list that includes only our current element.
+		head = set.slice(i, i + 1);
+		// We take smaller combinations from the subsequent elements
+		tailcombs = k_combinations(set.slice(i + 1), k - 1);
+		// For each (k-1)-combination we join it with the current
+		// and store it to the set of k-combinations.
+		for (j = 0; j < tailcombs.length; j++) {
+			combs.push(head.concat(tailcombs[j]));
+		}
+	}
+	return combs;
+}
 
 function rectangleScore(strokes){
-	//all lines are close to lines
-	var a = lineLengthCheck(strokes);
-	//all line endings are close to another line ending
-	var b = lineEndingsCheck(strokes);
-	//corners are 90 degree angles
-	//average the line endings together - is corner
-	var c = lineRightAngleCheck(b);
-	//corner distances are close to equal
-	console.log(a, b, c);
-
+	var output = [];
+	var kCombs = k_combinations(strokes, 4);
+	for(var i=0; i<kCombs.length; i++){
+		//all lines are close to lines
+		var a = lineLengthCheck(kCombs[i]);
+		//all line endings are close to another line ending
+		var b = lineEndingsCheck(kCombs[i]);
+		//corners are 90 degree angles
+		//average the line endings together - is corner
+		var c = lineRightAngleCheck(kCombs[i]);
+		//corner distances are close to equal
+		if(a == true && b.length == 4 && c < 5){
+			var k = [];
+			for(var j=0; j<kCombs[i].length; j++){
+				k.push(kCombs[i][j].idnum);
+			}
+			output.push(k);
+			k = [];
+		}
+	}
+	return output;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Object placement
@@ -1295,529 +1374,14 @@ function outputStrokes(){
 	return JSON.stringify(output);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// function printEverything(results){
-// 	var output = '', arr = results.ndollar_results;
-//     for (var p in arr) {
-//         if(arr[p] instanceof Primitive)
-//             output += arr[p].name+' '+JSON.stringify(arr[p].ids)+'<br>'+arr[p].score+'<br>';
-//         else
-//             output += arr[p].name+' '+JSON.stringify(arr[p].currentindicies)+'<br>'+arr[p].score+'<br>';
-//     }
-//     document.getElementById('four').innerHTML =  output;
-
-//     output = '';
-//     for (var p in primitives) {
-//         output += primitives[p].name+' '+ primitives[p].ids+'<br> ';
-//     }
-//     document.getElementById('one').innerHTML =  output;
-
-//     output = '', arr = results.refined;
-//     for (var p in arr) {
-//         output += arr[p].name+' '+ arr[p].ids+'<br> ';
-//     }
-//     document.getElementById('two').innerHTML =  output;
-
-//     output = '', arr = results.newObjs;
-//     for (var p in arr) {
-//         output += arr[p].name+' '+ arr[p].id+'<br> ';
-//     }
-//     document.getElementById('three').innerHTML =  output;
-// }
-
-// function reprocessCanvas(strokelist, primitives){
-// 	// console.log(1.1);
-//     ndollar_results = history_combinations_fast(5, primitives);
-//     // console.log(1.2);
-//     primitives = choosePrimitivesFast(Stroke_List, ndollar_results);
-//     // console.log(1.3);
-//     refined = refinePrimitives(primitives);
-//     newObjs = primitivesToObjects(refined);
-
-//     return {'ndollar_results':ndollar_results, 'primitives':primitives,
-// 			'refined':refined, 'newObjs':newObjs};
-// }
-
-
-
-// //chooses the top scoring combinations of strokes
-// function choosePrimitivesFast(history, newScores){
-// 	var i=0;
-// 	var temp = history;
-// 	var results = [];
-// 	var toadd = [];
-// 	var matched = [];
-// 	var chosen = true;
-// 	//match every line to something
-// 	while(matched.length != temp.length && i < newScores.length){
-// 		//go through all possibilities, sorted by score
-// 		//read through each possibility's line dependencies
-// 		//var indicies = newScores[i].currentindicies;
-// 		var indicies;
-// 		if(newScores[i] instanceof Primitive){
-// 			indicies = newScores[i].ids;
-// 		}
-// 		else {
-// 			indicies = newScores[i].currentindicies;
-// 		}		
-// 		var combined_strokes = combineStrokes(indicies);
-// 		var corners = findCorners(combined_strokes);
-
-// 		for(var j=0; j<indicies.length; j++){
-// 			var index = binarySearch(matched, indicies[j]);
-// 			if(index == -1){
-// 				toadd.push(indicies[j]);
-// 			}
-// 			//oh no we need to undo what we did this loop
-// 			else{
-// 				toadd.splice(0, toadd.length);
-// 				break;
-// 			}
-// 		}
-// 		if(toadd.length != 0){
-// 			//results.push(scores[i]);
-// 			if(newScores[i] instanceof Primitive){
-// 				results.push(newScores[i])
-// 			}
-// 			else{
-// 				results.push(new Primitive(newScores[i].currentindicies, newScores[i].name, newScores[i].score));
-// 			}
-// 		}
-// 		for(var k=0; k<toadd.length; k++)
-// 			matched.push(toadd[k]);
-
-// 		matched.sort(function(a, b){return a-b});
-// 		toadd.splice(0, toadd.length);
-// 		i++;
-// 	}
-// 	return results;
-// }
-
-
-// //finds strokes to process
-// function findStrokesFast(strokelist, futurenum, lastprocessed){
-// 	var indicies = [];
-// 	var count = 0;
-// 	while((count < futurenum && (strokelist.length-count)>0) ||
-// 		(strokelist.length-count-1) >= lastprocessed){
-// 		if(strokelist[strokelist.length-count-1].type != 'window')
-// 			indicies.push(strokelist.length-count-1);
-// 		count++;
-// 	}
-// 	return indicies.sort(function(a, b){return a-b});
-// }
-
-// //finds all the combinations of a set of numbers
-// //returns in string form ex. "1 2 3"
-// function getCombinations(chars) {
-//   var result = [];
-//   var f = function(prefix, chars) {
-//     for (var i = 0; i < chars.length; i++) {
-//       result.push(prefix + chars[i]);
-//       f(prefix + chars[i] + " ", chars.slice(i + 1));
-//     }
-//   }
-//   f('', chars);
-//   return result;
-// }
-
-// //turns strings into an array of numbers
-// function indiciesFromString(str){
-// 	var output = str.split(" ");
-// 	for(var i=0; i<output.length; i++){
-// 		output[i] = parseInt(output[i]);
-// 	}
-// 	return output;
-// }
-
-// //finds powerset minus the powerset of individuals other than itself 
-// function powerSet(ind){
-// 	var results = getCombinations(ind);
-// 	var output = [];
-// 	for(var i=0; i<results.length; i++){
-// 		var a = indiciesFromString(results[i]);
-// 		if(a.length == 1){
-// 			output.push(a);
-// 		}
-// 		else
-// 			output.push(a);
-// 	}
-// 	return output;
-// }
-
-// /////////////////////////////////////////////////////////////////
-// function combineCombinations2(subsets){
-// 	var output = [];
-// 	for(var i=0; i<subsets.length; i++){
-// 		var c = getCombinations2(subsets[i]);
-// 		for(var j=0; j<c.length; j++)
-// 			output.push(c[j]);
-// 	}
-// 	return output;
-// }
-
-// //finds all the combinations of a set of numbers
-// //returns in string form ex. "1 2 3"
-// function getCombinations2(chars) {
-//   var result = [];
-//   var f = function(prefix, chars) {
-//     for (var i = 0; i < chars.length; i++) {
-//       result.push(prefix + chars[i]);
-//       f(prefix + chars[i] + " ", chars.slice(i + 1));
-//     }
-//   }
-//   f('', chars);
-//   return result;
-// }
-
-// //turns strings into an array of numbers
-// function indiciesFromString2(str){
-// 	var output = str.split(" ");
-// 	for(var i=0; i<output.length; i++){
-// 		output[i] = parseInt(output[i]);
-// 	}
-// 	return output;
-// }
-
-// //if you get a lot of indicies, break them up into num sized arrays
-// function createSubsets2(arr, futurenum){
-// 	var output = [];
-// 	var temp = [];
-// 	if(arr.length <= futurenum)
-// 		output.push(arr)
-// 	else{
-// 		for(var i=0; i<arr.length-futurenum; i++){
-// 			for(var j=i; j<i+futurenum; j++){
-// 				temp.push(arr[j]);
-// 			}
-// 			output.push(temp.slice());
-// 			temp.splice(0, temp.length);
-// 		}
-// 	}
-// 	return output;
-// }
-
-// //finds powerset minus the powerset of individuals other than itself 
-// function powerSet2(ind, futurenum){
-// 	var s = createSubsets2(ind, futurenum);
-// 	var results = combineCombinations2(s);
-// 	var output = [];
-// 	for(var i=0; i<results.length; i++){
-// 		var a = indiciesFromString2(results[i]);
-// 		if(a.length == 1){
-// 			output.push(a);
-// 		}
-// 		else
-// 			output.push(a);
-// 	}
-// 	return output;
-// }
-// /////////////////////////////////////////////////////////////////////////////////////
-
-
-// //finds some number of combinations into the future and scores them, returns them
-// function history_combinations_fast(futurenum, prevPrimitives){
-// 	var combos = [],
-// 		currentindicies = [],
-// 		currentstrokes = [],
-// 		futurestrokes = [];
-// 	var dollar = new NDollarRecognizer(true);
-
-// 	futurestrokes = findStrokesFast(Stroke_List, futurenum, lastprocessed);
-// 	futurestrokes = powerSet2(futurestrokes, futurenum);
-
-// 	for(var a=0; a<futurestrokes.length; a++){
-// 		currentstrokes = [];
-// 		currentindicies = [];
-// 		for(var b=0; b<futurestrokes[a].length; b++){
-// 			hist_index = futurestrokes[a][b];
-// 			currentindicies.push(hist_index);
-// 			currentstrokes.push(Stroke_List[hist_index].points);
-// 		}
-// 		var result = dollar.Recognize(currentstrokes, true, false, true);
-// 		prevPrimitives.push({name:result.Name, score:result.Score, currentindicies:currentindicies});
-// 	}
-// 	prevPrimitives.sort(function(a, b){
-// 		return b.score - a.score;
-// 	});
-
-// 	lastprocessed = Stroke_List.length-1;
-// 	return prevPrimitives;
-// }
-
-
-// //original vs the one you are comparing to
-// function similarityScore(org, comp){
-// 	if(org.length != comp.length)
-// 		return [];
-// 	var arr = [];
-// 	for(var i=0; i<org.length; i++){
-// 		var s = distance(org[i], comp[i]);
-// 		arr.push(s);
-// 	}
-// 	return arr;
-// }
-
-// function theSamePaperObject(p1, p2){
-// 	if(p1.center == p2.center){
-// 		if(p1.cdist == p2.cdist){
-// 			if(arrayEquality(p1.corners, p2.corners)){
-// 				return true;
-// 			}
-// 		}
-// 	}
-// 	return false;
-// }
-
-// //is p1 (same numbers) in arr somewhere
-// function isIndexOf(p1, arr){
-// 	for(var i=0; i<arr.length; i++){
-// 		if(theSamePaperObject(p1, arr[i]) == true)
-// 			return i;
-// 	}
-// 	return -1;
-// }
-
-// function findAllCorners(stroke){
-// 	var angles = [], output = [];
-// 	for(var i=0; i<(stroke.length); i++){
-// 		angles.push(angle2Points(stroke[i], stroke[(i+1)%stroke.length]));
-// 	}
-// 	for(var i=1; i<angles.length+2; i++){
-// 		if(Math.abs(Math.abs(angles[(i)%angles.length]) - Math.abs(angles[(i-1)%angles.length])) > 30){
-// 			output.push(i%angles.length);
-// 		}
-// 	}
-// 	return output;
-// }
-
-// function breakStroke(stroke){
-// 	var corners = findAllCorners(stroke);
-// 	var output = [];
-// 	for(var i=0; i<corners.length-1; i++){
-// 		output.push([stroke[corners[i]], stroke[corners[i+1]]]);
-// 	}
-// 	return output;
-// }
-
-
-// function rotateCorner(corn, center, t){
-// 	var x = corn[0];
-// 	var y = corn[1];
-// 	var cx = center[0];
-// 	var cy = center[1];
-// 	var theta = todegrees(t);
-
-// 	var tempX = x - cx;
-// 	var tempY = y - cy;
-
-// 	// now apply rotation
-// 	var rotatedX = tempX*Math.cos(theta) - tempY*Math.sin(theta);
-// 	var rotatedY = tempX*Math.sin(theta) + tempY*Math.cos(theta);
-
-// 	// translate back
-// 	x = rotatedX + cx;
-// 	y = rotatedY + cy;
-
-// 	return [x,y];
-// }
-
-// function deleteCorners(){
-//     for(var i=cornerpoints.length-1; i>=0; i--){
-//         var obj = paper.getById(cornerpoints[i].id);
-//         cornerpoints.pop();
-//         obj.remove();
-//     }
-// }
-
-//returns in radians
-// function rotationAngle(corners, center){
-// 	if(corners.length != 4){
-// 		console.log('Incorrect # of corners');
-// 		return 0;
-// 	}
-// 	var n1 = angle2Points(corners[0], corners[2]);
-// 	var n2 = angle2Points(corners[1], corners[3]);
-
-// 	var sum = n1 + n2;
-// 	if(sum%90 < 8){
-// 		//console.log('redone');
-// 		sum = sum - (sum%90);
-// 	}
-// 	//console.log("angles ", n1, n2, sum);
-// 	//return sum;
-
-// 	return Math.atan((corners[3].y-corners[0].y)/(corners[3].x-corners[0].x));
-// }
-
-// function drawSquare(primitive, color){
-// 	var curr_stroke = primitive.pts,
-// 		corners = primitive.corners,
-//     	center = primitive.center,
-//     	avg = primitive.cdistance,
-//     	angle = rotationAngle(corners, center);
-
-//     //draw square
-//     var idn = drawQuad(center.x-avg, center.y-avg, avg*2, avg*2, angle, color)
-//     //center point
-//     drawpointmarker(center.x, center.y, "#FFFFFF");
-//     //mark corners
-//     for(var i=0; i<corners.length; i++){
-//     	drawpointmarker(corners[i].x, corners[i].y, "#FFFF00");
-//     }
-
-//     return idn;
-//     //score the square
-//     //var r = reorder(squarePoints(center.x, center.y, avg, angle, 24));
-//     //var score = similarityScore(r, curr_stroke.points);
-// }
-
-// function fractiondistance(p1x, p1y, p2x, p2y, i, n){
-// 	return(new Point(( p1x*(1-(i/n)) +p2x*(i/n) ),(p1y*(1-(i/n)) + p2y*(i/n)) ));
-// }
-
-// //given center, and radius of square
-// function squarePoints(cx, cy, rad, angle, n){
-// 	if(n%4 != 0)
-// 		return [];
-// 	var uL, uR, bR, bL;
-// 	var output = [];
-// 	uL = rotatepoint(cx, cy, cx-rad, cy-rad, angle);
-// 	uR = rotatepoint(cx, cy, cx+rad, cy-rad, angle);
-// 	bR = rotatepoint(cx, cy, cx+rad, cy+rad, angle);
-// 	bL = rotatepoint(cx, cy, cx-rad, cy+rad, angle);
-// 	output.push(uL);
-// 	output.push(uR);
-// 	output.push(bR);
-// 	output.push(bL);
-// 	//number of points per side need to add
-// 	var segments = ((n-4)/4) + 1;
-// 	for(var i=1; i<segments; i++){
-// 		//uL to uR, uR to bR, bR to bL, bL to uL
-// 		output.push(fractiondistance(uL.x, uL.y, uR.x, uR.y, i, segments));
-// 		output.push(fractiondistance(uR.x, uR.y, bR.x, bR.y, i, segments));
-// 		output.push(fractiondistance(bR.x, bR.y, bL.x, bL.y, i, segments));
-// 		output.push(fractiondistance(bL.x, bL.y, uL.x, uL.y, i, segments));
-// 	}
-// 	return output;
-// }
-
-//reorders all points based on angle to center
-// function reorder(points){
-// 	var smartpoints = [];
-// 	var center = centroid(points);
-
-// 	for(var i=0; i<points.length; i++){
-// 		var p = new SmartPoint(points[i].x, points[i].y,
-// 			angle2Points(points[i], center), distance(points[i], center));
-// 		smartpoints.push(p);
-// 	}
-// 	smartpoints.sort(function(a, b){
-// 		if(b.angleToCenter == a.angleToCenter)
-// 			return b.distToCenter - a.angleToCenter;
-// 		return b.angleToCenter - a.angleToCenter;
-// 	});
-// 	return smartpoints;
-// }
-
-//finds the strokes in the future to be matched and recognized with
-// function findStrokes(index, strokelist, futurenum){
-// 	var indicies = [];
-// 	for(var i=index; i<strokelist.length; i++){
-// 		if(indicies.length < futurenum){
-// 			indicies.push(i);
-// 		}
-// 		else{
-// 			return indicies;
-// 		}
-// 	}
-// 	return indicies;
-// }
-
-
-
-//choose the combos of lines with the highest scores and make sure that
-//everything is classified to something (even to nothing)
-// function choosePrimitives(history, scores){
-// 	var i=0;
-// 	var temp = history;
-// 	var results = [];
-// 	var toadd = [];
-// 	var matched = [];
-// 	var chosen = true;
-// 	//match every line to something
-// 	while(matched.length != temp.length && i < scores.length){
-// 		//go through all possibilities, sorted by score
-// 		//read through each possibility's line dependencies
-// 		var indicies = scores[i].currentindicies;
-
-// 		var combined_strokes = combineStrokes(indicies);
-// 		var corners = findCorners(combined_strokes);
-// 		//var iscorrect = shapeRules(corners, scores[i].result.Name);
-
-// 		for(var j=0; j<indicies.length; j++){
-// 			//if(iscorrect == true){
-// 				var index = binarySearch(matched, indicies[j]);
-// 				if(index == -1){
-// 					toadd.push(indicies[j]);
-// 				}
-// 				//oh no we need to undo what we did this loop
-// 				else{
-// 					toadd.splice(0, toadd.length);
-// 					break;
-// 				}
-// 			//}
-// 		}
-// 		if(toadd.length != 0){
-// 			//results.push(scores[i]);
-// 			results.push(new Primitive(scores[i].currentindicies, scores[i].result.Name));
-// 		}
-// 		for(var k=0; k<toadd.length; k++)
-// 			matched.push(toadd[k]);
-
-// 		matched.sort(function(a, b){return a-b});
-// 		toadd.splice(0, toadd.length);
-// 		i++;
-// 	}
-// 	return results;
-// }
-
-// //are the corners relatively equal distance?
-// //returns an average from the average of distances from corners
-// function squareTest(primitive){
-// 	var sum = 0, sumpercent=0;
-// 	var cornerdists = cornerDistances(primitive.corners);
-// 	for(var i=0; i<cornerdists.length; i++)
-// 		sum += cornerdists[i];
-// 	var avg = sum/cornerdists.length;
-// 	for(var i=0; i<cornerdists.length; i++){
-// 		var p = Math.abs((cornerdists[i] - avg)/avg);
-// 		sumpercent += p;
-// 	}
-// 	sumpercent = sumpercent/cornerdists.length;
-// 	return sumpercent;
-// }
+function findRectangle(strokes){
+
+}
+
+function deleteAllObjects(paper){
+	for(var i=0; i<Object_List.length; i++){
+		var o = paper.getById(Object_List[i]);
+		o.remove();
+	}
+	Object_List = [];
+}
