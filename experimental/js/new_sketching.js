@@ -207,13 +207,16 @@ $(canvas).mouseup(function () {
     if(Stroke_List.length > 3){
         rectStrokes = rectangleScore(Stroke_List);
     }
-    console.log(rectStrokes);
+
     deleteAllObjects(paper);
     for(var i=0; i<rectStrokes.length; i++){
-        drawRectangleStrokes(rectStrokes[i],'#FF0000');
+        var r = rectangleFitter(rectStrokes[i]);
+        var c = rectangleClassification(r);
+        drawRectangleStrokes(r,c.color);
+        console.log(rectStrokes[i]);
     }
     get_strokes();
-    get_objects();
+    // get_objects();
 
     lastpath = [];
     windowMode = false;

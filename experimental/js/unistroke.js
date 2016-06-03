@@ -1,6 +1,7 @@
 var Stroke_List = [];
 var Prev_Combos_List = [];
 var Object_List = [];
+var Shape_Object_List = [];
 var cornerpoints = [];
 var cornercount = 0;
 var objidcount = 0;
@@ -13,13 +14,15 @@ ObjectTemplates.push(new ObjectTemplate("bed", ["rect", "B"]));
 ObjectTemplates.push(new ObjectTemplate("desk", ["rect", "D"]));
 
 var FurnitureTemplates = [];
-FurnitureTemplates.push(new FurnitureTemplate('bed','twin',100,200));
-FurnitureTemplates.push(new FurnitureTemplate('bed','full',138,200));
-FurnitureTemplates.push(new FurnitureTemplate('bed','queen',150,213));
-FurnitureTemplates.push(new FurnitureTemplate('bed','king',200,213));
+FurnitureTemplates.push(new FurnitureTemplate('bed','twin',100,200,'blue'));
+FurnitureTemplates.push(new FurnitureTemplate('bed','full',138,200, 'red'));
+FurnitureTemplates.push(new FurnitureTemplate('bed','queen',150,213, 'green'));
+FurnitureTemplates.push(new FurnitureTemplate('bed','king',200,213, 'yellow'));
 
-FurnitureTemplates.push(new FurnitureTemplate('wardrobe','small',150,200));
-FurnitureTemplates.push(new FurnitureTemplate('wardrobe','large',200,300));
+FurnitureTemplates.push(new FurnitureTemplate('desk','medium',85,175, 'purple'));
+
+FurnitureTemplates.push(new FurnitureTemplate('wardrobe','small',150,200, 'brown'));
+FurnitureTemplates.push(new FurnitureTemplate('wardrobe','large',200,300, 'pink'));
 
 function Stroke(id, idnum, pts, resampleSize, type){
 	this.id = id;
@@ -32,7 +35,6 @@ function Stroke(id, idnum, pts, resampleSize, type){
 						y:(this.points[0].y + this.points[this.points.length-1].y)/2};
 	this.center = centroid(pts);
 	this.corners = shortStraw(this.points);
-	this.cornerIds = createCornerMarkers(this.corners);
 	this.bestFitLine = leastSquares(this.points);
 	this.lengthRatio = lengthRatio(this.points, this.length);
     this.removed = false;
@@ -79,16 +81,26 @@ function PaperObject(id, name, points, strokes, center, corners, cdist){
 	this.simplifiedPoints = pointSimplification(points, HISTORY_DEPTH);
 }
 
+function ShapeObject(id, type, points, strokes){
+	this.id = id;
+	this.type = type;
+	this.strokes = strokes;
+	this.center = centroid(points);
+	this.points = points;
+}
+
 function ObjectTemplate(name, primitives){
 	this.name = name;
 	this.primitives = primitives;
 }
 
-function FurnitureTemplate(name, size, h, w){
+function FurnitureTemplate(name, size, h, w, color){
 	this.name = name;
 	this.size = size;
 	this.height = h;
 	this.width = w;
+	this.color = color;
+	this.ratio = h/w;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -162,39 +174,6 @@ function pointscore(p1, p2, x, y){
 	if((p1.x*x + p1.y*y) > (p2.x*x + p2.y*y))
 		return true;
 	return false;
-}
-
-//only works to find 4 corners
-function findCorners(stroke){
-	var p = stroke;
-	
-	var botR = p[0], topR = p[1], topL = p[2], botL = p[3];
-
-	for(var i=4; i<p.length; i++){
-		//top left
-		if(pointscore(p[i], topL, -1.5, -1)){
-			topL = p[i];
-		}
-		//bot right
-		if(pointscore(p[i], botR, 1.5, 1)){
-			botR = p[i];
-		}
-
-		//top right
-		if(pointscore(p[i], topR, 1, -1.5)){
-			topR = p[i];
-		}
-
-		//bot left
-		if(pointscore(p[i], botL, -1, 1.5)){
-			botL = p[i];
-		}
-	}
-	return [topL, topR, botR, botL];
-}
-
-function midpoint(p1, p2){
-	return {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
 }
 
 function reverseRotate(corners, center, h, w){
@@ -346,48 +325,7 @@ function binarySearchPaperId(array, key) {
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Tests for Primitives
 
-function diagonalDistanceTest(primitive){
-	var corners = primitive.corners;
-	if(corners.length != 4)
-		return -1;
-	var sumpercent = 0;
-	var d1 = distance(corners[0], corners[2]);
-	var d2 = distance(corners[1], corners[3]);
-	var avg = (d1+d2)/2;
-	sumpercent += Math.abs((d1 - avg)/avg);
-	sumpercent += Math.abs((d2 - avg)/avg);
-	sumpercent = sumpercent/2;
-	return sumpercent;
-}
 
-function rightCornersTest(primitive){
-	var corners = primitive.corners;
-	if(corners.length != 4)
-		return -1;
-	var sumpercent = 0;
-	var angles = [];
-
-	for(var i=0; i<corners.length; i++)
-		angles.push(angle2PointsFixedPoint(corners[i], corners[(i+1)%4], corners[(i+2)%4]));
-
-	var avg = sumArray(angles)/4;
-	
-	for(var i=0; i<angles.length; i++)
-		sumpercent += Math.abs((angles[i] - avg)/avg);
-
-	sumpercent = sumpercent/4;
-	return sumpercent;
-}
-
-//splits a primitive into multiple primitives without names
-//for when a primitive doesn't pass previous checks
-function splitPrimitive(primitive){
-	var output = [];
-	for(var i=0; i<primitive.ids.length; i++){
-		output.push(new Primitive([primitive.ids[i]], "none"));
-	}
-	return output;
-}
 
 //checks if a set of strokes is close enough (are the centers within the largest )
 function strokesCloseEnough(ids){
@@ -406,43 +344,6 @@ function strokesCloseEnough(ids){
 	return true;
 }
 
-function cornerDistances(corners){
-	var output =[];
-	for(var i=0; i<corners.length; i++){
-		output.push(distance(corners[i], corners[(i+1)%corners.length]));
-	}
-	return output;
-}
-
-//tests for equality of length of sides
-function equalityTest(corners){
-	var sum = 0, sumpercent=0;
-	var cornerdists = cornerDistances(corners);
-	for(var i=0; i<cornerdists.length; i++)
-		sum += cornerdists[i];
-	var avg = sum/cornerdists.length;
-	for(var i=0; i<cornerdists.length; i++){
-		var p = Math.abs((cornerdists[i] - avg)/avg);
-		sumpercent += p;
-	}
-	sumpercent = sumpercent/corners.length;
-	//console.log("PERCENT ", sumpercent);
-	return sumpercent;
-}
-
-function diagonalEqualityTest(corners){
-	if(corners.length != 4)
-		return -1;
-	var sumpercent = 0;
-	var d1 = distance(corners[0], corners[2]);
-	var d2 = distance(corners[1], corners[3]);
-	var avg = (d1+d2)/2;
-	sumpercent += Math.abs((d1 - avg)/avg);
-	sumpercent += Math.abs((d2 - avg)/avg);
-	sumpercent = sumpercent/2;
-	return sumpercent;
-}
-
 function createObjectId(objName){
 	var oId = objName + '_' + objidcount;
     objidcount++;
@@ -458,25 +359,6 @@ function drawQuad(x,y,h,w,angle,color,id){
     rect.attr({fill:color, "opacity": .5});
     rect.toBack();
     rect.id = id;
-}
-
-function drawpointmarker(x, y, color, id){
-    var a = paper.circle(x, y, 3);
-    a.attr({"stroke": color, "stroke-width": 2});
-    a.id = id;
-    a.hide();
-    //cornerpoints.push(new CornerInfo(cId));
-}
-
-function createCornerMarkers(corners){
-	var cornerIds = [];
-	for(var i=0; i<corners.length; i++){
-		var cId = 'marker_' + cornercount;
-		cornerIds.push(cId);
-    	cornercount++;
-    	drawpointmarker(corners[i].x, corners[i].y, "#FF00FF", cId);
-	}
-	return cornerIds;
 }
 
 function drawRectangle(object, color){
@@ -499,9 +381,14 @@ function drawRectSimple(rect, color){
 	drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
 }
 
-function drawRectangleStrokes(strokes, color){
+function rectangleFitter(strokes){
 	var str = getStrokesById(strokes);
 	var r = bestFitRectStrokes(str);
+	return r;
+}
+
+function drawRectangleStrokes(rectangle, color){
+	var r = rectangle;
 	var id = createShapeId('rect');
 	Object_List.push(id);
 	drawQuad(r.rect.cx-(r.rect.w/2), r.rect.cy-(r.rect.h/2), r.rect.w, r.rect.h, (360-r.rect.angle), color, id);
@@ -828,40 +715,6 @@ var combine = function(a, min) {
     return all;
 }
 
-//finds the top N strokes that are compatible
-//finds all combinations of those
-function findStrokeCombos(stroke, topNum){
-	var prepCombo = [], fullCombos = [];
-	var current_stroke = Stroke_List[stroke.idnum];
-	current_stroke.scores.sort(function(a,b){return a.score-b.score});
-	//var topN = current_stroke.scores.slice(0, topNum);
-	var topN = current_stroke.scores;
-	var findN = topNum;
-
-	//prep to combo'd
-	for(var j=0; j<findN; j++){
-		if(j < topN.length){
-			if(topN[j].otherStroke.removed == false)
-				prepCombo.push({idnum:topN[j].otherStroke.idnum, points:topN[j].otherPoints});
-			else{
-				findN++;
-			}
-		}
-	}
-
-	allCombos = combine(prepCombo, 1);
-	//make sure the current stroke is present in all of them
-	for(var k=0; k<allCombos.length; k++) {
-		allCombos[k].push({idnum:stroke.idnum, points:stroke.points});
-		allCombos[k].sort(function(a, b){return a.idnum-b.idnum});
-		fullCombos.push(allCombos[k]);
-	}
-	//this stroke alone
-	//if(fullCombos.length > 1)
-		fullCombos.push([{idnum:stroke.idnum, points:stroke.points}]);
-
-	return fullCombos;
-}
 
 function multipleFindStrokeCombos(strokes, topNum){
 	var output = [];
@@ -912,152 +765,6 @@ function combineArrays(arr){
 	return out;
 }
 
-//choose the best ones from scores
-function recognizePrimitives(strokelist, scores){
-	var i=0;
-	var results = [], matched = [], chosenCombos = [];
-	var chosen = true;
-	//match every line to something
-	while(matched.length < strokelist.length && i < scores.length){
-		var indicies = scores[i].ids;
-
-		for(var j=0; j<indicies.length; j++){
-			var index = binarySearch(matched, indicies[j]);
-			//we found something that we've already chosen
-			if(index != -1){
-				chosen = false;
-				break;
-			}
-		}
-		if(chosen == true){
-			chosenCombos.push(scores[i]);
-			results.push(new Primitive(scores[i].ids, scores[i].name, scores[i].score));
-			for(var k=0; k<scores[i].ids.length; k++)
-				matched.push(scores[i].ids[k]);
-
-			matched.sort(function(a, b){return a-b});
-		}
-		
-		i++;
-		chosen = true;
-	}
-	var allStrokes = [];
-	for(var i=0; i<Stroke_List.length; i++){
-		if(Stroke_List[i].removed == false){
-			allStrokes.push(i);
-		}
-	}
-	//find out which ones haven't been chosen (got stolen away)
-	//readd those
-	var diff = arrayDifference(allStrokes, matched);
-	if(diff.length > 0){
-		var newScores = [];
-		for(var j=0; j<diff.length; j++){
-			var n = scoreStroke([Stroke_List[diff[j]]]);
-			newScores.push(n);
-		}
-		newScores.push(scores);
-		var combineScores = combineArrays(newScores);
-		console.log('someone was left behind', diff.length);
-		return recognizePrimitives(strokelist, combineScores);
-	}
-
-	return {results:results, prevCombos:chosenCombos};
-}
-
-//after getting list of primitives, apply some checks
-//make sure they are actually squares, rects, etc.
-function refinePrimitives(primitives){
-	var new_primitives = [],
-		threshold = .15;
-	for(var i=0; i<primitives.length; i++){
-		var curr_primitive = primitives[i];
-
-		if(curr_primitive.name == "rect" || curr_primitive.name == "rectL"){
-			if(diagonalDistanceTest(curr_primitive) < threshold &&
-				curr_primitive.allCorners.length > 2 &&
-				curr_primitive.allCorners.length < 10){
-				new_primitives.push(curr_primitive);
-			}
-			else{
-				// var temp = splitPrimitive(curr_primitive);
-				// for(var k=0; k<temp.length; k++)
-				// 	new_primitives.push(temp[k]);
-			}
-		}
-		else if(curr_primitive.name == "D"){
-			if(strokesCloseEnough(curr_primitive.ids)){
-				new_primitives.push(curr_primitive);
-			}
-		}
-		else if(curr_primitive.name == "B"){
-			if(strokesCloseEnough(curr_primitive.ids)){
-				new_primitives.push(curr_primitive);
-			}		
-		}
-		else if(curr_primitive.name == "W"){
-			if(curr_primitive.allCorners.length < 7 && curr_primitive.allCorners.length > 3
-				&& strokesCloseEnough(curr_primitive.ids)){
-				new_primitives.push(curr_primitive);
-			}
-		}
-		else{
-			console.log("ERROR: Primitive not recognized.");
-		}
-	}
-	return new_primitives;
-}
-
-function primitivesToObjects(primitives){
-	//remove the 'nones'
-	//var trimmed = trimPrimitives(primitives);
-	var trimmed = primitives.slice(0);
-	var	objects = [];
-	var added = false;
-	for(var i=0; i<(trimmed.length-1); i++){
-		for(var j=i+1; j<trimmed.length; j++){
-			var firstObj = trimmed[i];
-			var secondObj = trimmed[j];
-			//do the two match anything in templates
-			var templateName = checkObjectTemplates(firstObj, secondObj);
-			if(templateName != ""){
-				//are the two close at all
-				var isClose = primitiveCompare(firstObj, secondObj);
-				if(isClose == true){
-					//add in the new object
-					var chosenObj;
-					if(firstObj.name == "rect")
-						chosenObj = firstObj;
-					else if(secondObj.name == "rect")
-						chosenObj = secondObj;
-
-					var index = newObject(chosenObj, Object_List);
-					//this is a brand new object
-					if(index == -1){
-						var oId = createObjectId(templateName);
-						var pObj = new PaperObject(oId, templateName, chosenObj.pts,
-							[firstObj.ids, secondObj.ids], chosenObj.center, chosenObj.corners, chosenObj.cdistance);
-						objects.push(pObj);
-						Object_List.push(pObj);
-					}
-					//we've created this in the past
-					else{
-						objects.push(Object_List[index]);
-					}
-
-					//delete the future one to prevent weird stuff 
-					trimmed.splice(j, 1);
-					added = true;
-				}
-			}
-		}
-		if(added == false){
-			//objects.push(firstObj);
-		}
-		added = false;
-	}
-	return objects;
-}
 
 //check to make sure they are all 'lines'
 //aka the length of the stroke is close to start/end distance
@@ -1157,7 +864,7 @@ function rectangleScore(strokes){
 		//average the line endings together - is corner
 		var c = lineRightAngleCheck(kCombs[i]);
 		//corner distances are close to equal
-		if(a == true && b.length == 4 && c < 5){
+		if(a == true && b.length == 4 && c < .75){
 			var k = [];
 			for(var j=0; j<kCombs[i].length; j++){
 				k.push(kCombs[i][j].idnum);
@@ -1168,6 +875,20 @@ function rectangleScore(strokes){
 	}
 	return output;
 }
+
+//returns the furnituretemplate whose ratio matches the best
+function rectangleClassification(rectangle){
+	var r = [];
+	var rectRatio1 = rectangle.rect.h/rectangle.rect.w;
+	var rectRatio2 = rectangle.rect.w/rectangle.rect.h;
+	for(var i=0; i<FurnitureTemplates.length; i++){
+		r.push({ratio:withinPercent(rectRatio1,FurnitureTemplates[i].ratio), template:i});
+		r.push({ratio:withinPercent(rectRatio2,FurnitureTemplates[i].ratio), template:i});
+	}
+	r.sort(function(a, b){return a.ratio-b.ratio});
+	return FurnitureTemplates[r[0].template];
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1268,42 +989,6 @@ function placeNewObjects(oldObjects, newObjects){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-//Call the function itself
-//can enter in more than 1
-function addStroke(stroke, topNum) {
-	var allNewCombos = [], allScores = [], objectList = [], allPrim = [], allPrim2 = [], allObjs = [];
-
-	//find scores for all new strokes against all other strokes
-	scoreStrokes(stroke);
-
-	//for each stroke sort them and find combinations of top [topNum]
-	allNewCombos = multipleFindStrokeCombos(stroke, topNum);
-	allNewCombos = concatArray(allNewCombos);
-	printTo(allNewCombos, 'one', 1);
-	//scores them all
-	allScores = recognizeStrokes(allNewCombos, Prev_Combos_List);
-	allScores.sort(function(a,b){return b.score-a.score;});
-	printTo(allScores, 'two', 2);
-
-	allPrim = recognizePrimitives(Stroke_List, allScores);
-	Prev_Combos_List = allPrim.prevCombos;
-	printTo(allPrim.results, 'three', 3);
-	allPrim2 = refinePrimitives(allPrim.results);
-	printTo(allPrim2, 'four', 3);
-
-	allObjs = primitivesToObjects(allPrim2);
-
-	return allObjs;
-}
-
-function scoreStroke(stroke){
-	//for each stroke sort them and find combinations of top [topNum]
-	scoreStrokes(stroke);
-	var allNewCombos = multipleFindStrokeCombos(stroke, HISTORY_DEPTH);
-	allNewCombos = concatArray(allNewCombos);
-	var allScores = recognizeStrokes(allNewCombos, Prev_Combos_List);
-	return allScores;
-}
 
 function objectCleanUp(oldObjs, newObjs){
 	deleteOldObjects(oldObjs, newObjs);
@@ -1311,7 +996,6 @@ function objectCleanUp(oldObjs, newObjs){
     oldObjs = newObjs.slice(0);
     return oldObjs;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //printing
