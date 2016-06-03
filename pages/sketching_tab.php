@@ -601,7 +601,7 @@ $(document).ready(function()
 
       if (e['features'] != "")
       {
-        form.features.value = e['interesting'];
+        form.features.value = e['features'];
       }
 
       if (e['limitations'] != "")
