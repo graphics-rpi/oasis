@@ -103,6 +103,14 @@ function FurnitureTemplate(name, size, h, w, color){
 	this.ratio = h/w;
 }
 
+function Rectangle(rect, score, fType, strokes){
+	this.rect = rect;
+	this.score = score;
+	this.furnType = fType;
+	this.strokes = strokes;
+
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Stroke Functions
 
@@ -321,11 +329,8 @@ function binarySearchPaperId(array, key) {
     return -1;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Tests for Primitives
-
-
 
 //checks if a set of strokes is close enough (are the centers within the largest )
 function strokesCloseEnough(ids){
@@ -382,7 +387,7 @@ function drawRectSimple(rect, color){
 }
 
 function rectangleFitter(strokes){
-	var str = getStrokesById(strokes);
+	var str = getStrokesById(strokes.strokes);
 	var r = bestFitRectStrokes(str);
 	return r;
 }
@@ -780,6 +785,12 @@ function lineLengthCheck(strokes){
 //checks that all the line endings are close to at least 1 other end point
 function lineEndingsCheck(strokes){
 	var endings = [], pairs = [], found = false;
+	var maxCornerDist = 0;
+	for(var x=0; x<strokes.length; x++){
+		maxCornerDist += strokes[x].length;
+	}
+	maxCornerDist = maxCornerDist*.1;
+
 	for(var i=0; i<strokes.length; i++){
 		var s = Stroke_List[strokes[i]];
 		endings.push({point: strokes[i].points[0], id: strokes[i]});
@@ -788,8 +799,8 @@ function lineEndingsCheck(strokes){
 	for(var i=0; i<endings.length-1; i++){
 		for(var j=i+1; j<endings.length; j++){
 			var b = distance(endings[i].point, endings[j].point);
-			if(b < 50 && endings[i].id != endings[j].id){
-				pairs.push({p1:endings[i], p2:endings[j]});
+			if(b < maxCornerDist && endings[i].id != endings[j].id){
+				pairs.push({p1:endings[i], p2:endings[j], dist: b});
 				endings.splice(j,1);
 				found = true;
 			}
@@ -819,7 +830,7 @@ function lineRightAngleCheck(strokes){
 	}
 	var sum = sumArray(output);
 
-	return withinPercent(sum/4, 90);
+	return Math.abs(90-sum/strokes.length);
 }
 
 function k_combinations(set, k) {
@@ -855,21 +866,32 @@ function k_combinations(set, k) {
 function rectangleScore(strokes){
 	var output = [];
 	var kCombs = k_combinations(strokes, 4);
+	var maxAngleDiff = 15;
+	var maxCornerDist = 0;
+	
+
 	for(var i=0; i<kCombs.length; i++){
+		for(var x=0; x<kCombs[i].length; x++){
+			maxCornerDist += kCombs[i][x].length;
+		}
+		maxCornerDist = maxCornerDist*.2;
 		//all lines are close to lines
 		var a = lineLengthCheck(kCombs[i]);
 		//all line endings are close to another line ending
 		var b = lineEndingsCheck(kCombs[i]);
+		var bsum = 0;
+		for(var j=0; j<b.length; j++)
+			bsum += b[j].dist;
 		//corners are 90 degree angles
 		//average the line endings together - is corner
 		var c = lineRightAngleCheck(kCombs[i]);
 		//corner distances are close to equal
-		if(a == true && b.length == 4 && c < .75){
+		if(a == true && b.length == 4 && c < maxAngleDiff){
 			var k = [];
 			for(var j=0; j<kCombs[i].length; j++){
 				k.push(kCombs[i][j].idnum);
 			}
-			output.push(k);
+			output.push({strokes:k, score: c/maxAngleDiff + bsum/maxCornerDist});
 			k = [];
 		}
 	}
@@ -889,6 +911,36 @@ function rectangleClassification(rectangle){
 	return FurnitureTemplates[r[0].template];
 }
 
+function chooseBestRectangles(scores){
+	var best = [], chosen = [], pchosen = [];
+	var chosenrect = true;
+	var s = scores, i=0;
+	s.sort(function(a,b){return a.score-b.score});
+
+	while(chosen.length < Stroke_List.length && i < s.length){
+		for(var j=0; j<s[i].strokes.length; j++){
+			var x = binarySearch(chosen, scores[i].strokes[j]);
+			if(x == -1){
+				chosen.push(s[i].strokes[j]);
+				chosen.sort(function(a,b){return a-b});
+			}
+			else{
+				chosenrect = false;
+				break;
+			}
+		}
+		if(chosenrect == false){
+			chosen = pchosen.slice(0);
+		}
+		else{
+			best.push(s[i]);
+			pchosen = chosen.slice(0);
+		}
+		i++;
+		chosenrect = true;
+	}
+	return best;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1058,8 +1110,46 @@ function outputStrokes(){
 	return JSON.stringify(output);
 }
 
-function findRectangle(strokes){
+function exportStrokes(id, name, owner, rects, north){
+	var output = [],r = rects.slice(0);
+	var str = [], pts = [], found = [];
+	for(var i=0; i<r.length; i++){
+		for(var j=0; j<r[i].strokes.length; j++){
+			str.push({id:r[i].strokes[j], rect:i});
+		}
+	}
+	str.sort(function(a,b){return a.id-b.id});
+	for(var i=0; i<Stroke_List.length; i++){
+		var x = binarySearchPaperId(str, i);
+		//this is a normal stroke
+		if(x == -1){
+			var curr = Stroke_List[i];
+			if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
+				pts = [curr.points[0], curr.points[curr.points.length-1]];
+			else{
+				pts = curr.points;
+			}
+			output.push({type:Stroke_List[i].type, points:pts});
+		}
+		else{
+			var q = binarySearch(found, str[x].rect);
+			if(q == -1){
+				var rectangle = r[str[x].rect];
+				var rx = rectangle.rect.cx-(rectangle.rect.w/2);
+				rx = parseFloat(rx.toFixed(4));
+				var ry = rectangle.rect.cy-(rectangle.rect.h/2);
+				ry = parseFloat(ry.toFixed(4));
 
+				output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
+					width:rectangle.rect.w, angle:rectangle.rect.angle});
+				found.push(str[x].rect);
+			}
+		}
+	}
+	var n = ((north+180)%360)*(Math.PI/180);
+	n = parseFloat(n.toFixed(4));
+	var s = {model_id:id, model_name:name, owner:owner, north:n, items:output};
+	return JSON.stringify(s);
 }
 
 function deleteAllObjects(paper){

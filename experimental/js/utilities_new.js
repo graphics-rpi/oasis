@@ -58,3 +58,7 @@ function binarySearch(array, key) {
 function calcResize(length, resampleSize, lengPerSegement){
     return Math.round(length/lengPerSegement)*resampleSize;
 }
+
+function withinPercent(a, b){
+    return Math.min(Math.abs((Math.abs(a)-Math.abs(b)))/Math.abs(a), Math.abs((Math.abs(b)-Math.abs(a)))/Math.abs(b));
+}

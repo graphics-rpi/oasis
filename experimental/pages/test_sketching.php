@@ -5,7 +5,6 @@
 		<script src="../../js/lib/jquery.js"></script>
     	<script src="../../js/lib/jquery.form.min.js"></script>
 
-    	<script src="../js/ndollar.js"></script>
     	<script src="../js/utilities_new.js"></script>
 
     	<script src="../js/simplify.js"></script>
@@ -44,6 +43,14 @@
 					</div>
 					<div class="underpanelbox">
 						North Arrow Direction: <br><span id="northDir">90</span>
+					</div>
+					<div class="underpanelbox">
+						<form id= "export" method="post">
+							modelId <input type="text" name="name" id="mId"><br>
+							modelName <input type="text" name="mName" id="mName"><br>
+							owner <input type="text" name="owner" id="owner"><br>
+							<input type="submit" value="Export"></input>
+						</form>
 					</div>
 				</div>
 			</div>

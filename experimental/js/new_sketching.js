@@ -19,6 +19,7 @@ var clickedOn;
 var northArrowClick = false;
 var d = new Date();
 var closeEnough = [];
+var Rectangles = [];
 
 var gridDivisions = 20;
 
@@ -207,19 +208,34 @@ $(canvas).mouseup(function () {
     if(Stroke_List.length > 3){
         rectStrokes = rectangleScore(Stroke_List);
     }
-
+    for(var i=0; i<rectStrokes.length; i++){
+        var cs = "be ";
+        for(var j=0; j<rectStrokes[i].strokes.length; j++)
+            cs = cs + rectStrokes[i].strokes[j] + " ";
+        console.log(cs);
+    }
+    rectStrokes = chooseBestRectangles(rectStrokes);
+    for(var i=0; i<rectStrokes.length; i++){
+        var cs = "af ";
+        for(var j=0; j<rectStrokes[i].strokes.length; j++)
+            cs = cs + rectStrokes[i].strokes[j] + " ";
+        console.log(cs);
+    }
     deleteAllObjects(paper);
+    Rectangles = [];
     for(var i=0; i<rectStrokes.length; i++){
         var r = rectangleFitter(rectStrokes[i]);
         var c = rectangleClassification(r);
+        Rectangles.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes));
         drawRectangleStrokes(r,c.color);
-        console.log(rectStrokes[i]);
     }
     get_strokes();
     // get_objects();
 
     lastpath = [];
     windowMode = false;
+
+    console.log(exportStrokes('eqw', 'fafas', 'zxcad', Rectangles, northAngle));
 });
 
 $(canvas).mousemove(function (e) {
@@ -362,7 +378,26 @@ $(document).ready(function() {
             },
             success :  function(data) {
                 alert("success");
-                //document.getElementById("successmsg").style.display = 'block';
+            }
+        });
+    return false;
+    });
+
+    $(document).on('submit', '#export', function() {
+        var de = $("#mId").val();
+        var da = $("#mName").val();
+        var ow = $("#owner").val();
+        var rec = Rectangles;
+        $.ajax({
+            type : 'POST',
+            url  : '../php/export_model.php',
+            data : {
+                id: de,
+                output : exportStrokes(de, da, ow, rec, northAngle)
+            },
+            success :  function(data) {
+                alert("success!");
+
             }
         });
     return false;

@@ -144,9 +144,7 @@ function findById(strokeList, strokeId){
     return -1;
 }
 
-function withinPercent(a, b){
-    return Math.min(Math.abs((Math.abs(a)-Math.abs(b)))/Math.abs(a), Math.abs((Math.abs(b)-Math.abs(a)))/Math.abs(b));
-}
+
 
 function withinDiff(a,b){
     return Math.abs(Math.abs(a)-Math.abs(b));
@@ -363,6 +361,49 @@ function findEndPoint(startPt, endPt, strokeId, length){
     }
 }
 
+function Point(x, y) // constructor
+{
+    this.x = x;
+    this.y = y;
+}
+
+function PathLength(points) // length traversed by a point path
+{
+    var d = 0.0;
+    for (var i = 1; i < points.length; i++)
+        d += distance(points[i - 1], points[i]);
+    return d;
+}
+
+function resamplePoints(points, n)
+{
+
+    var I = PathLength(points) / (n - 1); // interval length
+    var D = 0.0;
+    var newpoints = new Array(points[0]);
+
+    for (var i = 1; i < points.length; i++)
+    {
+        var d = distance(points[i - 1], points[i]);
+        if ((D + d) >= I)
+        {
+            var qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
+            var qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
+            var qxp = parseFloat(qx.toFixed(3));
+            var qyp = parseFloat(qy.toFixed(3));
+            var q = new Point(qxp, qyp);
+            newpoints[newpoints.length] = q; // append new point 'q'
+            points.splice(i, 0, q); // insert 'q' at position i in points s.t. 'q' will be the next i
+            D = 0.0;
+        }
+        else D += d;
+    }
+
+    if (newpoints.length == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
+        newpoints[newpoints.length] = new Point(points[points.length - 1].x, points[points.length - 1].y);
+    return newpoints;
+}
+
 //based on what type of path it is return the correct path points
 function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
     var simplified;
@@ -375,17 +416,17 @@ function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown,
             windowMode = false;
             return -1;
         } 
-        simplified = Resample([startPoint, calcEnd], RESAMPLE_SIZE);
+        simplified = resamplePoints([startPoint, calcEnd], RESAMPLE_SIZE);
     }
     else if(shiftDown) {
-        simplified = Resample([startPoint, endPoint], RESAMPLE_SIZE);
+        simplified = resamplePoints([startPoint, endPoint], RESAMPLE_SIZE);
     }
     else {
         if(isLine(lastpath, 0, lastpath.length-1)) {
-            simplified = Resample([lastpath[0], lastpath[lastpath.length-1]], RESAMPLE_SIZE);
+            simplified = resamplePoints([lastpath[0], lastpath[lastpath.length-1]], RESAMPLE_SIZE);
         }
         else {
-            simplified = Resample(lastpath, RESAMPLE_SIZE);
+            simplified = resamplePoints(lastpath, RESAMPLE_SIZE);
             //simplified = lastpath;
         }
     }
