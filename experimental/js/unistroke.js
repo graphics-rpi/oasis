@@ -1110,7 +1110,11 @@ function outputStrokes(){
 	return JSON.stringify(output);
 }
 
-function exportStrokes(id, name, owner, rects, north){
+function rectangleCorners(rect){
+	return {;
+}
+
+function exportStrokes(id, name, owner, rects, north, scale){
 	var output = [],r = rects.slice(0);
 	var str = [], pts = [], found = [];
 	for(var i=0; i<r.length; i++){
@@ -1148,7 +1152,7 @@ function exportStrokes(id, name, owner, rects, north){
 	}
 	var n = ((north+180)%360)*(Math.PI/180);
 	n = parseFloat(n.toFixed(4));
-	var s = {model_id:id, model_name:name, owner:owner, north:n, items:output};
+	var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output};
 	return JSON.stringify(s);
 }
 
