@@ -187,10 +187,15 @@
 
     <div id="container-parent" class="sketch_tab_parent">
       <div id="maincontent">
-          <div id="container"> 
+          <div id="container" style="display:true"> 
             <!--Loading virtual tabletop and models-->
             <script src="../js/sketching_ui.js"></script>
           </div><!--container-->
+
+          <div id="sketchpad" class=""> 
+            <script src="../js/sketchpad.js"></script>
+          </div><!--container-->
+
       </div><!--maincontent-->
 
       <div id="sidecontent">
@@ -204,7 +209,15 @@
           <div id="dev_info"> </div>
         </div><!--title-->
 
-        <div id="feedback" class="feedback"> 
+        <div id="feedback" class="feedback">
+
+          OLD
+          <label class="switch">
+            <input id="togglecanvas" type="checkbox" checked>
+            <div class="slider"></div>
+          </label>
+          NEW
+
           <form id="fb_sketch_form" action="../php/sketch_submit_feedback.php" method="post">
             
             <!-- TODO: Figure out what to do with model titles
@@ -449,6 +462,7 @@
 
 <script>
 
+
 $(window).bind('resize', function(e)
 {
   if (window.RT) clearTimeout(window.RT);
@@ -457,12 +471,10 @@ $(window).bind('resize', function(e)
     global_button_handler("tab-switch-sketching:" + "../pages/sketching_tab.php");
   }, 100);
 });
-
     
 // On Load Scripts ( Same for all pages )    
 $(document).ready(function()
 {
-
   // ==================================================
   // Loading in previously entered feedback
   // ==================================================
@@ -713,4 +725,16 @@ function hide(id)
 {
   $("#" + id).hide();
 }
+
+// $("#sketchpad").hide();
+$("#container").hide();
+$("#togglecanvas").click(function() {
+  $("#container").toggle();
+  $("#sketchpad").toggle();
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+
 </script>

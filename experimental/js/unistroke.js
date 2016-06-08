@@ -233,6 +233,19 @@ function getAllPoints(strokes){
 	return output;
 }
 
+//given an array of strokes return an array of all points (separated by stroke)
+function getAllPointsSeparate(strokes){
+	var output = [], m = [];
+	for(var i=0; i<strokes.length; i++){
+		for(var j=0; j<strokes[i].points.length; j++){
+			m.push(strokes[i].points[j]);
+		}
+		output.push(m.slice(0));
+		m = [];
+	}
+	return output;
+}
+
 function getStrokesById(strokeIds){
 	var output = [];
 	for(var i=0; i<strokeIds.length; i++){
@@ -248,24 +261,6 @@ function createShapeId(type){
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //Point Manuipulation
-
-//rotates point (x,y) around center point at angle
-function rotatepoint(cx, cy, x, y, angle){
-	// x, y are coordinates of a corner point
-	// translate point to origin
-	var tempX = x - cx;
-	var tempY = y - cy;
-
-	// now apply rotation
-	var rotatedX = tempX*Math.cos(angle) - tempY*Math.sin(angle);
-	var rotatedY = tempX*Math.sin(angle) + tempY*Math.cos(angle);
-
-	// translate back
-	x = rotatedX + cx;
-	y = rotatedY + cy;
-
-	return new Point(x, y);
-}
 
 //find angle between 2 points with respect to origin
 function angle2Points(p1, p2){
@@ -364,6 +359,12 @@ function drawQuad(x,y,h,w,angle,color,id){
     rect.attr({fill:color, "opacity": .5});
     rect.toBack();
     rect.id = id;
+}
+
+function drawMarker(x,y,color){
+	var rect = paper.circle(x, y, 100);
+    rect.attr({fill:color, "opacity": .5});
+    rect.toBack();
 }
 
 function drawRectangle(object, color){
@@ -529,7 +530,7 @@ function iterativeScoring(points, rect, prevScore, inc){
 	results.sort(function(a,b){return a.score-b.score});
 
 	//there is a better one (pick the best of all options)
-	if(inc > 500){
+	if(inc > 750){
 		console.log('max stack size');
 		return {rect:rect, score:prevScore};
 	}
@@ -616,69 +617,6 @@ function testRecursiveScoring(strokes){
 	drawRectSimple(f.rect, '#FF0000');
 	return f;
 } 
-
-////////////////////////////////////////////////////////////////////////////////////////////
-
-//just weeds out the 'none' in primitives
-function trimPrimitives(primitives){
-	var output = [];
-	for(var i=0; i<primitives.length; i++){
-		if(primitives[i].name != "none"){
-			output.push(primitives[i]);
-		}
-	}
-	return output;
-}
-
-function templatesEqual(a1){
-	a1.sort();
-	for(var i=0; i<ObjectTemplates.length; i++){
-		var curr = ObjectTemplates[i].primitives;
-		curr.sort();
-		var t = curr.toString();
-		if(a1.toString() == t)
-			return i;
-	}
-	return -1;
-}
-
-//check if 2 primitives match anything in objecttemplates
-function checkObjectTemplates(p1, p2){
-	var arr = [p1.name, p2.name];
-	var templateIndex = templatesEqual(arr);
-	if(templateIndex != -1){
-		return ObjectTemplates[templateIndex].name;
-	}
-	return "";
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-//primitivesToObjects
-
-function primitiveCompare(p1, p2){
-	if(distance(p1.center, p2.center) < Math.abs(p1.cdistance - p2.cdistance))
-		return true;
-	return false;
-}
-
-//if they are the s
-function sameValues(primitive, paperObj){
-	//if the centers are the same, and corners are same, return true
-	if(primitive.center.x == paperObj.center.x && primitive.center.y == paperObj.center.y){
-		if(arraysEqual(primitive.pts, paperObj.points) == true)
-			return true;
-	}
-	return false;
-}
-
-function newObject(primitive, paperObjList){
-	for(var i=0; i<paperObjList.length; i++){
-		if(sameValues(primitive, paperObjList[i]) == true)
-			return i;
-	}
-	return -1;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Main Functionality
@@ -1111,7 +1049,17 @@ function outputStrokes(){
 }
 
 function rectangleCorners(rect){
-	return {;
+	var t = [-1,-1, 1,-1, 1,1, -1,1];
+	var output = [];
+	for(var i=0; i<4; i++){
+		var nx = rect.cx+((rect.w/2)*t[i*2]);
+		nx = parseFloat(nx.toFixed(4));
+		var ny = rect.cy+((rect.h/2)*t[(i*2)+1]);
+		ny = parseFloat(ny.toFixed(4));
+		var z = rotatePt(nx,ny,rect.cx, rect.cy, rect.angle*-1);
+		output.push(z);
+	}
+	return output;
 }
 
 function exportStrokes(id, name, owner, rects, north, scale){
@@ -1125,17 +1073,27 @@ function exportStrokes(id, name, owner, rects, north, scale){
 	str.sort(function(a,b){return a.id-b.id});
 	for(var i=0; i<Stroke_List.length; i++){
 		var x = binarySearchPaperId(str, i);
+		var curr = Stroke_List[i];
 		//this is a normal stroke
-		if(x == -1){
-			var curr = Stroke_List[i];
+		if(curr.type == 'window'){}
+		else if(x == -1){
 			if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
 				pts = [curr.points[0], curr.points[curr.points.length-1]];
 			else{
 				pts = curr.points;
 			}
-			output.push({type:Stroke_List[i].type, points:pts});
+			var w = [];
+			for(var j=0; j<curr.windows.length; j++){
+				var curr_win = Stroke_List[curr.windows[j]];
+				w.push([{x:curr_win.points[0].x, y:curr_win.points[0].y},
+					{x:curr_win.points[curr_win.points.length-1].x,
+						y:curr_win.points[curr_win.points.length-1].y,}])
+			}
+			output.push({type:curr.type, points:pts, windows:w});
 		}
+
 		else{
+			//find if we've already added this rectangle
 			var q = binarySearch(found, str[x].rect);
 			if(q == -1){
 				var rectangle = r[str[x].rect];
@@ -1143,15 +1101,22 @@ function exportStrokes(id, name, owner, rects, north, scale){
 				rx = parseFloat(rx.toFixed(4));
 				var ry = rectangle.rect.cy-(rectangle.rect.h/2);
 				ry = parseFloat(ry.toFixed(4));
+				var a = (rectangle.rect.angle)*(Math.PI/180);
+				a = parseFloat(a.toFixed(4));
+
+				var cn = rectangleCorners(rectangle.rect);
+				var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
 
 				output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
-					width:rectangle.rect.w, angle:rectangle.rect.angle});
+					width:rectangle.rect.w, angle:a, corners:cn , strokes:st});
+
 				found.push(str[x].rect);
 			}
 		}
 	}
 	var n = ((north+180)%360)*(Math.PI/180);
 	n = parseFloat(n.toFixed(4));
+
 	var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output};
 	return JSON.stringify(s);
 }

@@ -7,7 +7,6 @@
 
     	<script src="../js/utilities_new.js"></script>
 
-    	<script src="../js/simplify.js"></script>
     	<script src="../js/shortstraw.js"></script>
   		<script src="../js/unistroke.js"></script>
   		<!-- <script src="../js/sketchpad.js"></script> -->

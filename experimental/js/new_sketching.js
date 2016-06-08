@@ -229,13 +229,13 @@ $(canvas).mouseup(function () {
         Rectangles.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes));
         drawRectangleStrokes(r,c.color);
     }
-    get_strokes();
+    //get_strokes();
     // get_objects();
 
     lastpath = [];
     windowMode = false;
 
-    console.log(exportStrokes('eqw', 'fafas', 'zxcad', Rectangles, northAngle));
+    console.log(exportStrokes('eqw', 'fafas2', 'zxcad', Rectangles, northAngle, 106.4));
 });
 
 $(canvas).mousemove(function (e) {
@@ -393,7 +393,7 @@ $(document).ready(function() {
             url  : '../php/export_model.php',
             data : {
                 id: de,
-                output : exportStrokes(de, da, ow, rec, northAngle)
+                output : exportStrokes(de, da, ow, rec, northAngle, 106.4)
             },
             success :  function(data) {
                 alert("success!");
@@ -421,14 +421,12 @@ function draw_line(pts, idname, type){
 }
 
 function save_line(pts, idnum, idname, type){
-    // console.log(0.111);
     var resizeNum = calcResize(lineLength, RESAMPLE_SIZE, RESAMPLE_LEN_PER_SEGMENT);
     Stroke_List.push(new Stroke(idname, idnum, pts, resizeNum, type));
     if(type == 'window'){
         var s = findById(Stroke_List, clickedOn);
-        Stroke_List[s.idnum].windows.push(idname);
+        Stroke_List[s.idnum].windows.push(idnum);
     }
-    // console.log(0.112);
 }
 
 function isScribble(pts){
@@ -444,7 +442,7 @@ function process_line(pts){
     else if(randomScore(pts, 5) > .075)
         type = 'scribble';
     else
-        type = 'stroke';
+        type = 'linesegment';
     idname = type + "_" + lineidcount;
     save_line(pts, lineidcount, idname, type);
     draw_line(pts, idname, type);
