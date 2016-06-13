@@ -78,7 +78,6 @@ $session_model->setStatus('Exisiting');
 // Change view path match
 $user_folder_name  = $userobj->getUserFolderName();
 $_SESSION['view_path'] = '../user_output/'.$user_folder_name.'/'.'model_'.$id.'/slow/';
-
 $userobj->workingModel = $session_model;
 $_SESSION['user'] = serialize($userobj);
 

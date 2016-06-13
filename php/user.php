@@ -123,7 +123,7 @@ class User
     {
       
       // Failure
-      $_SESSION['error'] = "Bad email or password";
+      $_SESSION['error'] = "Bad username or password";
       return false;
       
     }
@@ -926,7 +926,7 @@ class User
 
     if($status == 'error')
     {
-      $generated_html = $generated_html."<td class='buttonalign'><button onclick=\"load_error($id, '$path'); return false;\" class='buttonsize'>error</button></td>";
+      $generated_html = $generated_html."<td class='buttonalign'><button onclick=\"load_error('$id', '$path'); return false;\" class='buttonsize'>error</button></td>";
     }
 
     // call the fuction load_res(13, '../var/www/')

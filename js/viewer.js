@@ -9,7 +9,7 @@ function getScrambledPath(){
                 path += json.result; 
             }
     });
-    
+
     return path;
 }
 
@@ -78,7 +78,7 @@ function getUnscrambledPath(mypath){
 }
 
 (function($) {
-    $.fn.viewer = function(spath,display) {
+    $.fn.viewer = function(spath,display, model_type) {
         //==============================================================================
         // GLOBALS FOR MODEL DATA
         //==============================================================================
@@ -178,12 +178,29 @@ function getUnscrambledPath(mypath){
         
         // Get the id from ajax call
         var arr = path.split('/');
-        var id = arr[3];
+        var id;
+        if(arr.length >= 3){
+            id = arr[3];
+        }
+        else if(arr.length == 1){
+            id = path;
+        } 
+        var final_path = "";
+        if(model_type == "geometry"){
+            path = "/user_output/geometry/" + id + "/slow/";
+            final_path = id;
+        }
+        else if(model_type == "texture"){
+            path = "/user_output/texture/" + id + "/" + arr[4] + "/";
+            final_path = id + "/" + arr[4];
+        }
 
-        // alert("id: " + id);
+        if(display){       
+            id = arr[0]; 
+            if(model_type == "texture"){
+                path = "/user_output/texture/" + id + "/" + arr[1] + "/";
 
-        
-        if(display){        
+            }
             var content = document.createElement("center");
             var mtitle = document.createElement("p");
             mtitle.setAttribute("id","model_title");
@@ -205,8 +222,7 @@ function getUnscrambledPath(mypath){
             id_val = temp_val;   
 
             var path_button = document.createElement("input");
-
-            path_button.setAttribute("value","https://oasis.cs.rpi.edu/share/sharer.php?path="+spath);
+            path_button.setAttribute("value",window.location.origin + "/share/sharer.php?path="+final_path + "&type=" + model_type);
 
             path_button.setAttribute("id","path_button");
             path_button.setAttribute("class","control-label");
@@ -400,7 +416,6 @@ function getUnscrambledPath(mypath){
                     btn_group.appendChild(b3);
                 
 //                alert(path.substr(41,44));
-                  alert( path.split('/')[2] );
                 if(display && path.split('/')[2] == "texture"){
 
                   

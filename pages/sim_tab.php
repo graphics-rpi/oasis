@@ -299,7 +299,7 @@
         <script>
             var path = getScrambledPath();
 //            console.log(path);
-            viewer = $('#container').viewer(path,false);
+            viewer = $('#container').viewer(path,false, 'texture');
         </script>
 <!--        <script src="../js/render_model.js"></script>-->
         <script src="../js/copy.js"></script>

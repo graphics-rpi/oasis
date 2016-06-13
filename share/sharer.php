@@ -23,7 +23,8 @@
         
         <?php
             $path = $_GET["path"];
-            echo "<script>$('#container').viewer('".$path."',true)</script>" ;
+            $model_type = $_GET["type"];
+            echo "<script>$('#container').viewer('".$path."',true, '".$model_type."')</script>" ;
         ?>
     </body>
 </html>

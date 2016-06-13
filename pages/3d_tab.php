@@ -273,7 +273,7 @@
           
         <script>
             var path = getScrambledPath();  // just going to get view path
-            viewer = $('#container').viewer(path,false);
+            viewer = $('#container').viewer(path,false, 'geometry');
         </script>
         <script src="../js/copy.js"></script>
         

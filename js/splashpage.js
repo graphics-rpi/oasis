@@ -1,6 +1,6 @@
 function openTool(){
     if (System.support.webgl) { //<--------------------------------- TODO REMOVE true
-        newwindow = window.open("pages/login_page.php", 'newwindow','width=1024,height=800,location=0');
+        newwindow = window.open("pages/login_page.php", 'newwindow','width=' + screen.width + ',height=' + screen.height + ', fullscreen=yes,location=0,scrollbars=yes');
 
         // TODO: Totally untested, please test 
         popupBlockerChecker.check(newwindow);

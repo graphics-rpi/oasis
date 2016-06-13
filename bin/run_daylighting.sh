@@ -65,7 +65,7 @@ echo "===============MORGIFY TWEEN HACK================="
 cd $1
 mogrify -format png *.ppm
 rm foo.obj
-ln -s ${8}/tween/foo.obj foo.obj
+ln -s ${8}tween/foo.obj foo.obj
 # ln -s ${8}/tween/foo.mtl foo.mtl
 chmod 755 *
 cd -

@@ -20,7 +20,10 @@ $t_ran         = "";
 
 $geometry_folder_path = '/var/www/user_output/geometry/'.$id.'/';
 $texture_folder_path  = '/var/www/user_output/texture/'.$id.'/';
-mkdir($texture_folder_path);
+if(!is_dir($texture_folder_path))
+{
+  mkdir($texture_folder_path, 0755, true);
+}
 
 // ===================================================
 // Creating the simulation folder
@@ -64,7 +67,7 @@ $floor_texture_fcv = $sim_inout_fcv.'surface_camera_floor_0_0_texture.png';
 if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
 
   // Create output folder + task file only if we need to
-  if ( mkdir($sim_inout_ncv) and mkdir( $sim_inout_fcv ) )
+  if ( mkdir($sim_inout_ncv, 0755, true) and mkdir( $sim_inout_fcv, 0755, true ) )
   {
     // we just created these folders above
   }
@@ -94,6 +97,10 @@ if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
 
   // Location where wall and task folder are located
   $lsvo_path = '/var/www/user_task/lsvo/';
+  if(!is_dir($lsvo_path))
+  {
+    mkdir($lsvo_path);
+  }
 
   // ===================================================
   // Creating our two task files

@@ -990,7 +990,6 @@ function sketching_ribbon_handler(event_str)
         }
         else if (stat == "error")
         {
-
           bootbox.alert("Error in Generating 3D model, Please try another sketch", function() {
             window.location = "../pages/3d_tab.php";
           });

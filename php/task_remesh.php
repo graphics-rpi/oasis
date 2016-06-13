@@ -44,8 +44,10 @@ $model_folder_path = '/var/www/user_output/geometry/'.$id.'/';
 
 // Create this folder if it doesn't exisit, if it does then we have already
 // Created a slow and tween folder and have a view (no change)
-if ( mkdir($model_folder_path) )
+if (!is_dir($model_folder_path))
 {
+  mkdir($model_folder_path, 0755, true);
+}
   // Create subfolders where we will store simulation results
   mkdir($model_folder_path.'slow/');
   mkdir($model_folder_path.'tween/');
@@ -54,6 +56,20 @@ if ( mkdir($model_folder_path) )
   // Creating task file and wall file
   // ========================================
 
+
+  //Create remesh_path if it doesn't exist
+  if(!is_dir($remesh_path))
+  {
+    mkdir($remesh_path, 0755, true);
+  }
+  if(!is_dir($remesh_path.'task/'))
+  {
+    mkdir($remesh_path.'task/', 0755, true);
+  }
+  if(!is_dir($remesh_path.'wall/'))
+  {
+    mkdir($remesh_path.'wall/', 0755, true);
+  }
   // Create them at the same time
   $task_file = fopen($remesh_path.'task/'.$identifier.'.task', "w");
   $wall_file = fopen($remesh_path.'wall/'.$identifier.'.wall', "w");
@@ -96,8 +112,6 @@ if ( mkdir($model_folder_path) )
   // ========================================
   $cmd =  'INSERT INTO remesh_task_table VALUES($1,$2,$3,$4)';
   pg_query_params($cmd,array($t_called,$t_wait,$t_ran,$id));
-
-}
 
 // ========================================
 // Setting global view path

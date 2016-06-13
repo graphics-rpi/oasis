@@ -51,7 +51,7 @@ def thesomething(filename, location):
 
             logging.debug('starting a jobs...')
             # Arguments for run_daylighting.sh
-            in_out  = task_file.readline() # /var/www/user_output/fd30260cf6c7e996/model_116/results/sim_0201_1300_10500_CLEAR_fcv/
+            in_out  = task_file.readline() # /var/www/user_output/texture/xtodgn/sim_0101_1300_-10500_CLEAR_fcv/
             month   = task_file.readline() # mm
             day     = task_file.readline() # dd
             hour    = task_file.readline() # hh
@@ -95,10 +95,10 @@ def thesomething(filename, location):
 
             # Trying to access tables and update
             _id  = in_out.split("/")[5]         # model_<id>
-            _id = _id.split("_")[1]             # <id>
+            #_id = _id.split("_")[1]             # <id>
             logging.debug("found id: " + _id);
 
-            args_raw  = in_out.split("/")[7]
+            args_raw  = in_out.split("/")[6]
             args_raw  = args_raw.split("_") #['sim','mmdd','hhmm','01hhmm','weather']
             args = args_raw[1] + "_" + args_raw[2] + "_" + args_raw[3] + "_" + args_raw[4];
 

@@ -32,17 +32,17 @@ body{
 }
 
 #register{
-  width:400px;
+  width:60%;
   margin:0 auto;
   margin-top:8px;
-  margin-bottom:2%;
+  margin-bottom:8px;
   transition:opacity 1s;
   -webkit-transition:opacity 1s;
 }
 
 #triangle{
   width:0;
-  border-top:12x solid transparent;
+  border-top:12px solid transparent;
   border-right:12px solid transparent;
   border-bottom:12px solid #3399cc;
   border-left:12px solid transparent;
@@ -60,25 +60,26 @@ body{
 
 form{
   background:#f0f0f0;
-  padding:6% 4%;
+  padding:2% 4% 2% 4%;
 }
 
 input[type='text'],input[type="email"],input[type="password"]{
-  width:92%;
+  width:25%;
   background:#fff;
-  margin-bottom:4%;
+  margin:4px 37.5%;
   border:1px solid #ccc;
-  padding:4%;
+  padding:16px;
   font-family:'Open Sans',sans-serif;
   font-size:95%;
   color:#555;
 }
 
 input[type="submit"]{
-  width:100%;
+  width:50%;
   background:#3399cc;
+  margin:0% 25%;
   border:0;
-  padding:4%;
+  padding:16px;
   font-family:'Open Sans',sans-serif;
   font-size:100%;
   color:#fff;

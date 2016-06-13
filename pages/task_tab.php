@@ -149,7 +149,7 @@
       $(document).ready(function(){
         setInterval(function() {
             $("#task_list").load("../php/reload_task_page.php");
-        }, 3000);
+        }, 10000);
       });
     </script>
 
