@@ -43,7 +43,7 @@
             Your models and written feedback will be collected for use in future publications and the improvement of our tool. </p><br>
             <p>No personal information is collected during the registration process. If you choose to provide an email address, 
             researchers may contact you with optional follow-up questions. We will not share this email with anyone.</p><br>
-<!--
+
             <p>For the next 2 weeks (June 15th - June 30th) we are offering the
             following incentive for current RPI students or recent RPI alums to
             participate in the study.  On June 30th we will have a random drawing
@@ -61,7 +61,7 @@
             you are otherwise entitled.  You may chose to not answer any of the
             questions below.</p>
             <br>
-            -->
+            
             <p>You retain ownership of the architectural models designed in our
             system.</p><br>
             For questions or concerns please contact: <br>

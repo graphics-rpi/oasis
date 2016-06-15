@@ -436,7 +436,7 @@ console.log("Start ribbon_ui.js");
                       props: {}
                     }
                   ]
-                },
+                }/*,
                 {
                   type: "buttons",
                   size: "large",
@@ -464,7 +464,7 @@ console.log("Start ribbon_ui.js");
                       props: {}
                     }
                   ]
-                }    
+                }  */  
               ]
             },
             {
