@@ -9,7 +9,7 @@ function getScrambledPath(){
                 path += json.result; 
             }
     });
-    
+
     return path;
 }
 
@@ -78,7 +78,7 @@ function getUnscrambledPath(mypath){
 }
 
 (function($) {
-    $.fn.viewer = function(spath,display) {
+    $.fn.viewer = function(spath,display, model_type) {
         //==============================================================================
         // GLOBALS FOR MODEL DATA
         //==============================================================================
@@ -174,19 +174,39 @@ function getUnscrambledPath(mypath){
         var mouseY = 0;
         var mouseYOnMouseDown = 0;
         
-        var path = getUnscrambledPath(spath); 
+        var path = spath;  // view path
         
+        // Get the id from ajax call
         var arr = path.split('/');
-        var model = arr[3];
-        var id = model.split('_')[1];
-        
-        if(display){        
+        var id;
+        if(arr.length >= 3){
+            id = arr[3];
+        }
+        else if(arr.length == 1){
+            id = path;
+        } 
+        var final_path = "";
+        if(model_type == "geometry"){
+            path = "/user_output/geometry/" + id + "/slow/";
+            final_path = id;
+        }
+        else if(model_type == "texture"){
+            path = "/user_output/texture/" + id + "/" + arr[4] + "/";
+            final_path = id + "/" + arr[4];
+        }
+
+        if(display){       
+            id = arr[0]; 
+            if(model_type == "texture"){
+                path = "/user_output/texture/" + id + "/" + arr[1] + "/";
+
+            }
             var content = document.createElement("center");
             var mtitle = document.createElement("p");
             mtitle.setAttribute("id","model_title");
             mtitle.innerHTML = getModelTitle(id);
             
-//            console.log(getModelTitle(id));
+            // alert(console.log(getModelTitle(id)));
             mtitle.className = "mtitle";
             content.appendChild(mtitle);
             document.getElementById("container").appendChild(content);   
@@ -202,8 +222,7 @@ function getUnscrambledPath(mypath){
             id_val = temp_val;   
 
             var path_button = document.createElement("input");
-
-            path_button.setAttribute("value","https://oasis.cs.rpi.edu/share/sharer.php?path="+spath);
+            path_button.setAttribute("value",window.location.origin + "/share/sharer.php?path="+final_path + "&type=" + model_type);
 
             path_button.setAttribute("id","path_button");
             path_button.setAttribute("class","control-label");
@@ -397,9 +416,11 @@ function getUnscrambledPath(mypath){
                     btn_group.appendChild(b3);
                 
 //                alert(path.substr(41,44));
-//                alert(path.substr(42,45))
-                if(display && path.substr(41,44)!="slow/" && path.substr(42,45)!="slow/" && path.substr(43,46)!="slow/")
+                if(display && path.split('/')[2] == "texture"){
+
+                  
                     document.getElementById("modelinfo").innerHTML = getModelInfo(path);
+                }
                 
                 var gohome = document.createElement("a");
                 gohome.setAttribute("class","btn btn-default");

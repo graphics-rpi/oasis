@@ -123,7 +123,7 @@ class User
     {
       
       // Failure
-      $_SESSION['error'] = "Bad email or password";
+      $_SESSION['error'] = "Bad username or password";
       return false;
       
     }
@@ -131,28 +131,34 @@ class User
   
   function getUserFolderName()
   {
-    // First part of the folder name
-    $username     = $this->username;
-    $dirName      = $username;
-    return substr(sha1($dirName), 0, 16);
+    // NOTE: No longer used as of the spring 2016 refactor
+
+    // // First part of the folder name
+    // $username     = $this->username;
+    // $dirName      = $username;
+    // return substr(sha1($dirName), 0, 16);
+    
   }
   
   function createUserFolder()
   {
-    // In this function we will create a folder that will
-    // hold in all the slow, tween, and results
-    $dir_name = $this->getUserFolderName();
+    // NOTE: No longer used as of the spring 2016 refactor
+
+    // // In this function we will create a folder that will
+    // // hold in all the slow, tween, and results
+    // $dir_name = $this->getUserFolderName();
     
-    // If we manage to create a folder (doesn't exisit)
-    if (mkdir("../user_output/" . $dir_name))
-    {
-      shell_exec('chmod 0775 ../user_output/' . $dir_name);
-      error_log( 'Created user folder: ../user_output/'.$dir_name );
-    }
-    else
-    {
-      error_log( 'Folder Already Exisit: ../user_output/'.$dir_name );
-    }
+    // // If we manage to create a folder (doesn't exisit)
+    // if (mkdir("../user_output/" . $dir_name))
+    // {
+    //   shell_exec('chmod 0775 ../user_output/' . $dir_name);
+    //   error_log( 'Created user folder: ../user_output/'.$dir_name );
+    // }
+    // else
+    // {
+    //   error_log( 'Folder Already Exisit: ../user_output/'.$dir_name );
+    // }
+
   } //create
   
   function loadLastModel()
@@ -461,7 +467,9 @@ class User
     
     for ($i = count($title_arr)-1; $i >= 0; --$i)
     {
-      $current_item = '<li><a onclick=\'load_previous_model('.$unique_id_arr[ $i ].');\' href="javascript:void(0);">' . $title_arr[$i] . '</a></li>';
+      $current_item_fmt = '<li><a onclick=\'load_previous_model("%s");\' href="javascript:void(0);">%s</a></li>';
+      $current_item = sprintf($current_item_fmt, $unique_id_arr[$i], $title_arr[$i]);
+      // $current_item = '<li><a onclick=\'load_previous_model('.$unique_id_arr[ $i ].');\' href="javascript:void(0);">' . $title_arr[$i] . '</a></li>';
       
       $generated_html = $generated_html . $current_item;
     }
@@ -471,25 +479,37 @@ class User
     return $generated_html;
   }
 
+  //Returns an array representing the tuple inserted into the database.
+  //row[0] = id, row[1] = title, row[2] = username, row[3] = user_model_num, row[4] = user_renov_num
   function save_to_database()
-  {
-    $id             = $this->workingModel->id;
-    $title          = $this->workingModel->title;
-    $user_model_num = $this->workingModel->user_model_num;
-    $user_renov_num = $this->workingModel->user_renov_num;
+  {	   
+    $title 				= $this->workingModel->title;
+    $userModelNumber 	= $this->workingModel->user_model_num;
+    $wallfile 			= $this->workingModel->wallfile_txt;
+    $paths 				= $this->workingModel->paths_txt;
 
-    // Save to meta database
-    $sql_cmd = "INSERT INTO model_meta VALUES ($id, '$title','$this->username' ,$user_model_num, $user_renov_num );";
-    error_log('sql_cmd: '.$sql_cmd);
-    pg_query($sql_cmd) or die("Failed to save to model meta database");
+    $sqlCmd = "SELECT * FROM insert_model($1, $2, $3, $4, $5);";
+    error_log('sql_cmd: '.$sqlCmd);
 
-    // ERROR: When Create new model, update_model_db
-    $wallfile_txt = $this->workingModel->wallfile_txt;
-    $paths_txt    = $this->workingModel->paths_txt;
+    $insertedModel = pg_query_params($sqlCmd, array($title, $this->username, $userModelNumber, $wallfile, $paths)) or die("Failed to save to model to database");
 
-    $sql_cmd = "INSERT INTO model_data VALUES ($id, '$wallfile_txt' , '$paths_txt' );";
-    error_log('sql_cmd: '.$sql_cmd);
-    pg_query($sql_cmd) or die("Failed to save to model data database");
+    if(pg_num_rows($insertedModel) == 1)
+    {
+    	$row = pg_fetch_row($insertedModel);
+    	$this->workingModel->id = $row[0];
+    	$this->workingModel->title = $row[1];
+    	
+    	$this->workingModel->user_model_num = $row[3];
+    	$this->workingModel->user_renov_num = $row[4];
+    }
+
+	pg_query_params('INSERT INTO error_table VALUES($1,$2,$3,$4,$5)', array(
+      date("Y-m-d").'|'.date("h:i:sa"),
+      $username,
+      "",
+      "save to database end",
+      ""
+    ));
   }
 
   function sortByCreationTime($file_1, $file_2)
@@ -508,9 +528,65 @@ class User
   function get_user_simulations()
   {
 
+    error_log("Start");
+    $simulations = array();
+
+    // Mindy
+    // Step 1: Get list of all ids that belong to this user
+    require_once("config.inc.php"); // let us connect to database
+    $model_id_list = array();
+    $sql = "SELECT id FROM model_meta WHERE username=$1";
+    $results = pg_query_params($sql,array($this->username));
+
+    while($cur_row = pg_fetch_row($results) )
+    {
+
+      if( is_dir("/var/www/user_output/texture/".$cur_row[0]."/") )
+      {
+          array_push($model_id_list,$cur_row[0]);
+      }
+    }
+    
+    // Step 2: For each of those traverse /var/www/user_output/<id>/ for simulations
+
+    foreach($model_id_list as $cur_id)
+    {
+
+      // Get all sim folders under this model
+      $results_sim = scandir("/var/www/user_output/texture/".$cur_id."/");
+
+      // For each folder toss into simulations if it is an actual sim folder
+      foreach ($results_sim as $sim) 
+      {
+        if( $sim === '.' or $sim === '..')
+        {
+          // exclude this and parent from search
+          continue;
+        }
+
+        if( is_dir("/var/www/user_output/texture/".$cur_id."/".$sim."/") )
+        {
+
+          //sim_mmdd_hhmm_weather_ssmmhh_fcv
+          // we want only the normal ones to show
+          $vis_mode = explode("_", $sim);
+          $vis_mode = $vis_mode[5];
+          if( $vis_mode == "ncv"  ){
+            // Step 3: Push absolute path into simulations array
+            array_push($simulations,'../user_output/texture/'.$cur_id.'/'.$sim.'/');
+          }
+        }
+      }
+    }
+    
+    
+    // Step 4: Continue business as usual
+
+    /*
     // Hashed version of the users folder name
     $user_folder_name  = $this->getUserFolderName();
     $user_folder_path  = '/var/www/user_output/'.$user_folder_name.'/';
+
 
     $simulations = array();
 
@@ -554,6 +630,8 @@ class User
       }
     }
 
+    */
+
     $model_id = array();
     $month    = array();
     $day      = array();
@@ -574,14 +652,12 @@ class User
       // Breaking into pieces 
       $pieces = explode("/",$simulation_path);
 
-      // this model_<id> 
+      // getting model id
       $id = $pieces[3]; 
-      $id = explode("_", $id );
-      $id = $id[1]; //<id>
 
       array_push($model_id, $id);
 
-      $sim_var = $pieces[5];
+      $sim_var = $pieces[4];
       $sim_var = explode("_",$sim_var); // sim,mmdd,hhmm,ssmmhh,weather
 
       $date = $sim_var[1]; //mmdd
@@ -719,7 +795,7 @@ class User
   function currentModelInfo($path)
   {
     $pieces = explode("/",$path);
-    $pieces = explode("_",$pieces[5]);
+    $pieces = explode("_",$pieces[4]);
 
     //0 is sim, 1 is date, 2 is time, 3 is weather
     $date = $pieces[1];
@@ -833,7 +909,7 @@ class User
     
     if($status == 'success')
     {
-      $generated_html = $generated_html."<td class='buttonalign'><button onclick=\"load_res($id, '$path'); return false;\" class='buttonsize'>view</button></td>";
+      $generated_html = $generated_html."<td class='buttonalign'><button onclick=\"load_res('$id', '$path'); return false;\" class='buttonsize'>view</button></td>";
     }
 
     if($status == 'pending')
@@ -850,7 +926,7 @@ class User
 
     if($status == 'error')
     {
-      $generated_html = $generated_html."<td class='buttonalign'><button onclick=\"load_error($id, '$path'); return false;\" class='buttonsize'>error</button></td>";
+      $generated_html = $generated_html."<td class='buttonalign'><button onclick=\"load_error('$id', '$path'); return false;\" class='buttonsize'>error</button></td>";
     }
 
     // call the fuction load_res(13, '../var/www/')

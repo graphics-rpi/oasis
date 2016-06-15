@@ -297,7 +297,7 @@ function save_form(form_id)
 }
 
 window.onbeforeunload = function (e) {
-  if(GLOBAL_FEEDBACK_STATUS == "SAVING"){
+  if(typeof GLOBAL_FEEDBACK_STATUS !== 'undefined' && GLOBAL_FEEDBACK_STATUS == "SAVING"){
 
     switch(GLOBAL_RIBBON_TAB)
     {

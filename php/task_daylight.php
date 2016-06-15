@@ -1,4 +1,3 @@
-
 <?php
 error_log("task_daylight.php: Start");
 
@@ -7,7 +6,8 @@ require_once('config.inc.php');
 require_once('user.php');
 require_once('model.php');
 
-sleep(1);
+// Remove this sleep once we use a diffrent naming convention
+// sleep(1);
 
 // Get user object and username and session model
 $userobj       = unserialize($_SESSION['user']);
@@ -18,14 +18,12 @@ $t_called      = $_POST['t_called'];
 $t_wait        = "";
 $t_ran         = "";
 
-
-// Hashed version of the users folder name
-$user_folder_name  = $userobj->getUserFolderName();
-$user_folder_path  = '/var/www/user_output/'.$user_folder_name.'/';
-$model_folder_path = $user_folder_path.'model_'.$id.'/';
-
-// Results folder
-$res_folder_path   = $model_folder_path.'results/';
+$geometry_folder_path = '/var/www/user_output/geometry/'.$id.'/';
+$texture_folder_path  = '/var/www/user_output/texture/'.$id.'/';
+if(!is_dir($texture_folder_path))
+{
+  mkdir($texture_folder_path, 0755, true);
+}
 
 // ===================================================
 // Creating the simulation folder
@@ -59,8 +57,8 @@ pg_query_params('INSERT INTO error_table VALUES($1,$2,$3,$4,$5)', array(
 ));
 
 // Creating two folders, one for normal color visual other for fcv
-$sim_inout_ncv   = $res_folder_path.$sim_folder_name.'_ncv/';
-$sim_inout_fcv   = $res_folder_path.$sim_folder_name.'_fcv/';
+$sim_inout_ncv   = $texture_folder_path.$sim_folder_name.'_ncv/';
+$sim_inout_fcv   = $texture_folder_path.$sim_folder_name.'_fcv/';
 
 $floor_texture_ncv = $sim_inout_ncv.'surface_camera_floor_0_0_texture.png';
 $floor_texture_fcv = $sim_inout_fcv.'surface_camera_floor_0_0_texture.png';
@@ -69,7 +67,7 @@ $floor_texture_fcv = $sim_inout_fcv.'surface_camera_floor_0_0_texture.png';
 if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
 
   // Create output folder + task file only if we need to
-  if ( mkdir($sim_inout_ncv) and mkdir( $sim_inout_fcv ) )
+  if ( mkdir($sim_inout_ncv, 0755, true) and mkdir( $sim_inout_fcv, 0755, true ) )
   {
     // we just created these folders above
   }
@@ -83,13 +81,15 @@ if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
   // ===================================================
   // Preparing the ncv simulation folder with inputs
   // ===================================================
-  $slow_dir  = $model_folder_path.'slow/';
-  $tween_obj = $model_folder_path.'tween/foo.obj';
+  $slow_dir  = $geometry_folder_path.'slow/';
+  $tween_mtl  = $geometry_folder_path.'tween/foo.mtl';
 
   // We want to copy all files in slow folder into our sim folders
   shell_exec( 'cp '.$slow_dir.'* '.$sim_inout_ncv );
   shell_exec( 'cp '.$slow_dir.'* '.$sim_inout_fcv );
 
+  // shell_exec( 'cp '.$tween_mtl.' '.$sim_inout_ncv );
+  // shell_exec( 'cp '.$tween_mtl.' '.$sim_inout_fcv );
 
   // ===================================================
   // Creating the task file for this
@@ -97,6 +97,10 @@ if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
 
   // Location where wall and task folder are located
   $lsvo_path = '/var/www/user_task/lsvo/';
+  if(!is_dir($lsvo_path))
+  {
+    mkdir($lsvo_path);
+  }
 
   // ===================================================
   // Creating our two task files
@@ -115,6 +119,7 @@ if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
   $task_file_contents = $task_file_contents.$tz_min."\n";
   $task_file_contents = $task_file_contents.$weather."\n";
   $task_file_contents = $task_file_contents."ncv\n";
+  $task_file_contents = $task_file_contents.$geometry_folder_path."\n";
   fwrite($task_file, $task_file_contents);
 
   $identifier = time();
@@ -129,8 +134,8 @@ if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
   $task_file_contents = $task_file_contents.$tz_min."\n";
   $task_file_contents = $task_file_contents.$weather."\n";
   $task_file_contents = $task_file_contents."fcv\n";
+  $task_file_contents = $task_file_contents.$geometry_folder_path."\n";
   fwrite($task_file, $task_file_contents);
-
 
 
   // ===========================================
@@ -138,7 +143,6 @@ if( !file_exists($floor_texture_ncv) or !file_exists($floor_texture_fcv)){
   // ===========================================
   $cmd = 'INSERT INTO daylighting_task_table VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)';
   pg_query_params($cmd,array($t_called,$t_wait,$t_ran,$id,$date,$time,$timezone,$weather,$args));
-
 
 
 }

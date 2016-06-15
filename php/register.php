@@ -40,9 +40,6 @@
   // CONFIRMATION and REDIRECT
   if ($created_user->authenticate()) {
 
-    // Setting up users folder
-    $created_user->createUserFolder();
-    
     // Creating default/blank fields in session model
     $id = "Not Assigned";
 
@@ -62,6 +59,11 @@
     $_SESSION['user']            = serialize($created_user);
     $_SESSION['task_container']  = "";
 
+    $real_email = $_POST["realEmail"];
+    if($real_email){
+      $query = 'INSERT INTO load_user_responces (username, user_email) Values($1, $2)';
+      pg_query_params($query, array($email, $real_email));
+    }
     error_log("register.php: Authenticated ");
     header("location:../pages/load_tab.php");
     exit;

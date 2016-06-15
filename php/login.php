@@ -22,11 +22,6 @@ if ($created_user->authenticate())
     ""
   ));
 
-  // Create folder with correct permissions to save simulations in
-  $created_user->createUserFolder();
-
-  // TODO load in last made model from database to session
-
   // This is the model we are looking to load
   $id                  = "Not Assigned";
 
@@ -89,7 +84,7 @@ if ($created_user->authenticate())
 
     // Change view path
     $user_folder_name  = $created_user->getUserFolderName();
-    $_SESSION['view_path'] = '../user_output/'.$user_folder_name.'/'.'model_'.$id.'/slow/';
+    $_SESSION['view_path'] = '../user_output/geometry/'.$id.'/slow/';
 
     $created_user->workingModel = $session_model;
     $_SESSION['user'] = serialize($created_user);

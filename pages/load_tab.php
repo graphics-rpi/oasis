@@ -354,7 +354,7 @@ Create a new model by clicking on <img src="../pages/AcidJs.Ribbon/icons/large/n
 
     $(":input").on('input', function(){
         busy_ajax("Saving Feedback");
-        global_feedback_status = "saving";
+        GLOBAL_FEEDBACK_STATUS = "SAVING";
         TRIGGER = true;
         setTimeout(auto_save, 5000);
     });

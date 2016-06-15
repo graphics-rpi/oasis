@@ -19,10 +19,6 @@ $id = explode("/",$view_path); // Extracts model_7
 error_log('get_title_from_view_path: '.$id);
 $id = $id[3];
 error_log('get_title_from_view_path: '.$id);
-$id = explode("_",$id); // Extracts just 7
-error_log('get_title_from_view_path: '.$id);
-$id = $id[1];
-error_log('get_title_from_view_path: '.$id);
 
 $query = "SELECT title FROM model_meta WHERE id='$id';";
 $res = pg_query($query) or die("Couldn't retrive title with id");

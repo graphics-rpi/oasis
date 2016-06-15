@@ -18,9 +18,7 @@ $session_model = $userobj->workingModel;
 $id = $session_model->id;
 
 // Hashed version of the users folder name
-$user_folder_name  = $userobj->getUserFolderName();
-$user_folder_path  = '/var/www/user_output/'.$user_folder_name.'/';
-$model_folder_path = $user_folder_path.'model_'.$id.'/';
+$model_folder_path = '/var/www/user_output/geometry/'.$id.'/';
 
 // Check if this file exisit
 //

@@ -199,7 +199,7 @@
           <div id= "title">
           </div>
           <!-- php script will display model information only if we are viewing renderings -->
-          <?php  if(sizeof(explode("/", $_SESSION['view_path'])) > 6){  ?>
+          <?php  if(False){  ?>
               <div id="modelinfo">
                 <?php
                   require_once('../php/user.php');
@@ -272,8 +272,8 @@
           </div>
           
         <script>
-            var path = getScrambledPath();  
-            viewer = $('#container').viewer(path,false);
+            var path = getScrambledPath();  // just going to get view path
+            viewer = $('#container').viewer(path,false, 'geometry');
         </script>
         <script src="../js/copy.js"></script>
         

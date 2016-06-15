@@ -952,7 +952,7 @@ function sketching_ribbon_handler(event_str)
       dataType: 'json',
       data: {},
       success: function(e) {
-         // alert(e.stat);
+        // alert(e.stat);
         // Callback function after checking if there is output for us in the slow folder
         var stat = e.stat; // "true" or "false"
 
@@ -990,7 +990,6 @@ function sketching_ribbon_handler(event_str)
         }
         else if (stat == "error")
         {
-
           bootbox.alert("Error in Generating 3D model, Please try another sketch", function() {
             window.location = "../pages/3d_tab.php";
           });

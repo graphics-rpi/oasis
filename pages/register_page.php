@@ -24,29 +24,47 @@
 
       <input name="email" type="text" placeholder="Username" />
       <input name= "password1" type="password" placeholder="Create Password" />
-      <input name= "password2" type="password" placeholder="Retype Password" /><br>
+      <input name= "password2" type="password" placeholder="Retype Password" />
 
 
       <div style="font-size:80%;">
         <span style="text-align: justify; text-justify: inter-word;">
           <!--UPDATE ME-->
+          <p>
           This application is a research project for architectural modeling and daylighting simulation. 
-          Your feedback is important to help us improve this tool. <br>
-          <a id="link" href="#">Click here for more information </a>
+          Your feedback is important to help us improve this tool.</p><br>
+          <!--<a id="link" href="#">Click here for more information </a>
 
-          <div id="extra_info" style="display:none;">
-            <br>
-            <br>
-            <br>
-            <p>Participation is voluntary. We anticipate no risk or discomfort beyond routine use of a computer and the Internet. <br><br></p>
-            <p>Construction of a model averages 5-10 minutes, depending on the complexity and depth of analysis. Your models and written feedback will be collected for use in future publications and the improvement of our tool. <br><br></p>
-            <p>No personal information is collected during the registration process. 
-            If you choose to provide an email address, researchers may contact you with optional follow-up questions.
-            We will not share this email with anyone.
-            <br><br></p>
+          <div id="extra_info" style="display:none;">-->
+          <div id="extra_info">
+            
+            <p>Participation is voluntary. We anticipate no risk or discomfort beyond routine use of a computer and the Internet. </p><br>
+            <p>Construction of a model averages 5-10 minutes, depending on the complexity and depth of analysis. 
+            Your models and written feedback will be collected for use in future publications and the improvement of our tool. </p><br>
+            <p>No personal information is collected during the registration process. If you choose to provide an email address, 
+            researchers may contact you with optional follow-up questions. We will not share this email with anyone.</p><br>
+<!--
+            <p>For the next 2 weeks (June 15th - June 30th) we are offering the
+            following incentive for current RPI students or recent RPI alums to
+            participate in the study.  On June 30th we will have a random drawing
+            for twenty $50 prepaid VISA gift cards.  Each user study participant
+            will earn 1 entry into the drawing per different RPI dorm room model
+            created, with a maximum of 5 entries (for making 5 or more dorm room
+            models).  To be entered into the drawing, you must have been a
+            student at RPI during the fall 2015 or spring 2016
+            semesters and you must provide your RPI RCS email address.</p>
 
-            <p>There is no remuneration offered for participation in this study. You retain ownership of the architectural models designed in our system.<br><br></p>
-            For questions or concerns please contact: <br> <br>
+            <input name= "realEmail" type="email" placeholder="Email (Optional)"/>
+            <p>Your decision to not participate will not affect your course grade or
+            any other academic outcome.  You have the right to terminate your
+            participation at any time without penalty or loss of benefits to which
+            you are otherwise entitled.  You may chose to not answer any of the
+            questions below.</p>
+            <br>
+            -->
+            <p>You retain ownership of the architectural models designed in our
+            system.</p><br>
+            For questions or concerns please contact: <br>
 
             <address>
               Barbara Cutler <a href="mailto:cutler@cs.rpi.edu">cutler@cs.rpi.edu</a>.<br> 
@@ -64,16 +82,12 @@
               Rensselaer Polytechnic Institute <br>
               CII 9015110 8th Street<br>
               Troy, NY 12180 <br>
-              (518) 276-4873<br>
-            </address>
-            
-            <br>
+              (518) 276-4873
+            </address><br>
           </div>
+        </span>
 
-      
-        </span><br>
-
-        </label><br>
+        </label>
         <input type="checkbox" value="true" name="include" checked /><label for="include"> I am 18 years or older and give permission for my models and feedback to be used in future publications (Optional) </label>
         <br> <br>
       </div>
@@ -95,7 +109,7 @@
 </body>
 
 
-<script>
+<!--<script>
 
 var REG_MORE_INFO_TOGGLE = false;
 
@@ -122,4 +136,4 @@ window.onload = function() {
 
 }
 
-</script>
+</script>-->

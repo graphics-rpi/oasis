@@ -51,7 +51,7 @@ def thesomething(filename, location):
 
             logging.debug('starting a jobs...')
             # Arguments for run_daylighting.sh
-            in_out  = task_file.readline() # /var/www/user_output/fd30260cf6c7e996/model_116/results/sim_0201_1300_10500_CLEAR_fcv/
+            in_out  = task_file.readline() # /var/www/user_output/texture/xtodgn/sim_0101_1300_-10500_CLEAR_fcv/
             month   = task_file.readline() # mm
             day     = task_file.readline() # dd
             hour    = task_file.readline() # hh
@@ -61,6 +61,7 @@ def thesomething(filename, location):
             tz_min  = task_file.readline() # mm
             weather = task_file.readline() # weather
             colormode = task_file.readline()
+            model_path = task_file.readline()
 
             in_out  = in_out.strip('\n')
             month   = month.strip('\n')
@@ -72,11 +73,13 @@ def thesomething(filename, location):
             tz_min  = tz_min.strip('\n')
             weather = weather.strip('\n')
             colormode = colormode.strip('\n')
+            model_path = model_path.strip('\n')
+
 
             GMT_hr,GMT_min = convert_to_GMT(hour,minute,tz_sign,tz_hr,tz_min)
 
             errors_log = in_out + "errors.log"
-            bash_str = "/var/www/bin/run_daylighting.sh %s %s %s %s %s %s %s > %s"%(in_out, month, day, GMT_hr, GMT_min, weather, colormode, errors_log)
+            bash_str = "/var/www/bin/run_daylighting.sh %s %s %s %s %s %s %s %s > %s"%(in_out, month, day, GMT_hr, GMT_min, weather, colormode, model_path, errors_log)
             logging.debug( "Running bash: %s"%(bash_str))
             # We ask for the result, because it foreces it wait until task is done
             t_before = int(time.time())
@@ -92,10 +95,10 @@ def thesomething(filename, location):
 
             # Trying to access tables and update
             _id  = in_out.split("/")[5]         # model_<id>
-            _id = _id.split("_")[1]             # <id>
+            #_id = _id.split("_")[1]             # <id>
             logging.debug("found id: " + _id);
 
-            args_raw  = in_out.split("/")[7]
+            args_raw  = in_out.split("/")[6]
             args_raw  = args_raw.split("_") #['sim','mmdd','hhmm','01hhmm','weather']
             args = args_raw[1] + "_" + args_raw[2] + "_" + args_raw[3] + "_" + args_raw[4];
 

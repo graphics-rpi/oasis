@@ -5,7 +5,9 @@ require_once('config.inc.php');          // Connect to DB
 
 $data_array = array();
 $view_path = $_SESSION['view_path'];
+echo json_encode(array("result"=>$view_path));
 
+/*
 $sql = "SELECT suffix FROM lookup WHERE path=$1";
 $res = pg_query_params($sql,array($view_path));
 
@@ -43,4 +45,5 @@ else {
 
 echo json_encode(array("result"=>$spath));
 
+ */
 ?>
