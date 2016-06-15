@@ -10,11 +10,11 @@
 	// Results of the forms are sent in the form of request
 	
 	// What tab am I on? Use this to get all the qid's + questions strings
-	$tab = $_SESSION["tab"];
 
 	// // Getting user object + getting the model's unique ID
 	$userobj = unserialize($_SESSION['user']);
 	$username = $userobj->username;
+	$tab = $userobj->tab;
   	$model_id = $workingModel->id;
 
     $email = $_POST["bug_email"];

@@ -8,6 +8,7 @@ var lineidcount = 0, objidcount = 0;
 var lastpath = [];
 var RESAMPLE_SIZE = 24, RESAMPLE_LEN_PER_SEGMENT = 250;
 var lineLength = 0, lineMin=25;
+var maxStackCalls = 500;
 
 var startPoint, endPoint;
 var shiftDown = false, windowMode = false;
@@ -15,6 +16,20 @@ var clickedOn;
 var northArrowClick = false;
 var Rectangles = [];
 var Stroke_List = [], Object_List = [];
+
+
+var CANVAS_WIDTH = SKETCHP_W();
+var CANVAS_HEIGHT = SKETCHP_H();
+
+function SKETCHP_H()
+{
+  return document.getElementById('sketchpad').offsetHeight;
+}
+
+function SKETCHP_W()
+{
+  return document.getElementById('sketchpad').offsetWidth;
+}
 
 
 var ObjectTemplates = [];
@@ -70,16 +85,107 @@ function FurnitureTemplate(name, size, h, w, color){
     this.ratio = h/w;
 }
 
-function Rectangle(rect, score, fType, strokes){
+function Rectangle(rect, score, fType, strokes, labelId){
     this.rect = rect;
     this.score = score;
     this.furnType = fType;
     this.strokes = strokes;
+    this.labelId = labelId;
 }
 
+// Loads a sketch if there is one
+//load_sketch_sketchpad();
+
+function load_sketch_sketchpad()
+{
+    console.log()
+  // Froms an ajax call to the server to get data of the working model
+  $.getJSON("../php/get_session_model.php",
+  {}, function(e)
+  {
+    // Call back function once we get back the working model
+    var username = e.username;
+    var stat = e.stat;
+    var title = e.title;
+    var paths_txt = e.wallfile_text;
+
+    if(isJson(paths_txt)){
+        IS_NEW_MODEL = 2;
+        $("#container").toggle();
+        $("#sketchpad").toggle();
+        if (stat == "Exisiting" || stat == "New Edited")
+        {
+            //load the strokes in
+          loadFile(paths_txt);
+          document.getElementById('title_frm').title.value = title;
+
+        }
+        else if (stat == "New")
+        {
+          document.getElementById('title_frm').title.value = get_random_name();
+          // console.log("Loading New Model From With Blank Session");
+
+          document.getElementById('dev_info').innerHTML = "New model, not saved yet";
+
+        }
+        else
+        {
+          // We shouldn't ever reach this
+          alert("Recived from get_session_model.php: " + stat);
+          window.location = "../pages/login_page.php";
+        }
+    }
+
+  });
+}
+
+function loadFile(filetext){
+    var sketchObject = JSON.parse(filetext);
+    var allStrokes = sketchObject.items;
+    var strokeIds = [];
+    for(var i=0; i<allStrokes.length; i++){
+        if(allStrokes[i].type == 'linesegment'){
+            var pts = allStrokes[i].points;
+            if(pts.length <= 2){
+                addStroke(pts, false);
+            }
+            else if(pts.length < 2){
+                console.log('ERROR: loadfile not enough points for line');
+                return;
+            }
+            for(var j=0; j<allStrokes[i].windows.length; j++){
+                var p = allStrokes[i].windows[j];
+                addWindow(p, true, i);
+            }
+        }
+        else if(allStrokes[i].type == 'bed' || allStrokes[i].type == 'wardrobe' || allStrokes[i].type == 'desk'){
+            var r = {cx:allStrokes[i].x+(allStrokes[i].width/2), cy:allStrokes[i].y+(allStrokes[i].height/2),
+                w:allStrokes[i].width, h:allStrokes[i].height, angle:(allStrokes[i].angle*180/Math.PI)};
+            drawRectSimple(r, 'blue');
+            for(var j=0; j<allStrokes[i].strokes.length; j++){
+                addStroke(allStrokes[i].strokes[j].points);
+                strokeIds.push(allStrokes[i].strokes[j].id);
+            }
+            Rectangles.push(new Rectangle(r, 0, allStrokes[i].type, strokeIds.slice(0)));
+            strokeIds = [];
+        }
+        else{
+
+        }
+    }
+}
+
+function isJson(str) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
 
 //starting position for north Arrow
-var northAngle = 0, northX = 235, northY = 5, northWidth = 30, northHeight = 40;
+var northAngle = 0, northX = (CANVAS_WIDTH/2), northY = 5, northWidth = 30, northHeight = 40;
 
 var northArrow = sketchpadPaper.image("../images/northarrow.png", 0, 0, northWidth, northHeight)
     .attr({cursor: "move", transform: "R" + northAngle + "T" + northX + "," + northY });
@@ -96,7 +202,7 @@ function dragStart(){
 function dragStop() {
     northAngle = angleAwayFromCenter(CANVAS_WIDTH/2,CANVAS_WIDTH/2, northX+15, northY+20);
     // document.getElementById('northDir').innerHTML = (northAngle+90);
-    northArrow.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 500, "<>");
+    northArrow.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 350, "<>");
     northArrowClick = false;
 }
 
@@ -175,9 +281,9 @@ $(sketchpad).mouseup(function () {
     }
 
     //turns path into a processable path based on windowmode, etc.
-    var processed = findPrintedPath(startPoint, endPoint, clickedOn,
+    var processed = findPrintedPath(lastpath, startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
-    process_line(processed);
+    process_line(processed, windowMode, clickedOn);
     var rectStrokes = [];
     if(Stroke_List.length > 3){
         rectStrokes = rectangleScore(Stroke_List);
@@ -195,7 +301,7 @@ $(sketchpad).mouseup(function () {
 
     lastpath = [];
     windowMode = false;
-
+    GLOBAL_SKETCH_ALTERED = true;
     //console.log(exportStrokes('eqw', 'fafas2', 'zxcad', Rectangles, northAngle, 106.4));
 });
 
@@ -235,7 +341,33 @@ $(sketchpad).mouseleave(function () {
         lastpath = [];
     }
 });
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
+function addStroke(points, windowM){
+    var processed = findPrintedPath(points, points[0], points[points.length-1], clickedOn,
+        windowM, shiftDown, RESAMPLE_SIZE);
+    process_line(processed, windowM, " ");
+}
+
+function addWindow(points, windowM, strokeId){
+    process_line(points, windowM, strokeId);
+}
+
+function drawScene(rectStrokes, strokelist, rects, paperobj){
+    var rectStrokes = [];
+    if(strokelist.length > 3){
+        rectStrokes = rectangleScore(strokelist);
+    }
+    rectStrokes = chooseBestRectangles(rectStrokes);
+    deleteAllObjects(paperobj);
+    rects = [];
+    for(var i=0; i<rectStrokes.length; i++){
+        var r = rectangleFitter(rectStrokes[i]);
+        var c = rectangleClassification(r);
+        rects.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes));
+        drawRectangleStrokes(r,c.color);
+    }
+}
 
 function draw_line(pts, idname, type){
     var linepath = pointsToPath(pts);
@@ -252,12 +384,18 @@ function draw_line(pts, idname, type){
     }
 }
 
-function save_line(pts, idnum, idname, type){
+function save_line(pts, idnum, idname, type, clicked){
     var resizeNum = calcResize(lineLength, RESAMPLE_SIZE, RESAMPLE_LEN_PER_SEGMENT);
     Stroke_List.push(new Stroke(idname, idnum, pts, resizeNum, type));
     if(type == 'window'){
-        var s = findById(Stroke_List, clickedOn);
-        Stroke_List[s.idnum].windows.push(idnum);
+        if(isNaN(clicked) ){
+            var id = iterativeSearch(Stroke_List, clicked);
+            Stroke_List[id].windows.push(idnum);
+        }
+        else{
+            Stroke_List[clicked].windows.push(idnum);
+        }
+        
     }
 }
 
@@ -267,16 +405,16 @@ function isScribble(pts){
     var dist = distance(pts[0], pts[pts.length-1]);
 }
 
-function process_line(pts){
+function process_line(pts, windowM, clicked){
     var idname, type;
-    if(windowMode == true)
+    if(windowM == true)
         type = 'window';
     else if(randomScore(pts, 5) > .075)
         type = 'scribble';
     else
         type = 'linesegment';
     idname = type + "_" + lineidcount;
-    save_line(pts, lineidcount, idname, type);
+    save_line(pts, lineidcount, idname, type, clicked);
     draw_line(pts, idname, type);
     lineidcount++;
 }
@@ -339,8 +477,15 @@ function calcResize(length, resampleSize, lengPerSegement){
 function withinPercent(a, b){
     return Math.min(Math.abs((Math.abs(a)-Math.abs(b)))/Math.abs(a), Math.abs((Math.abs(b)-Math.abs(a)))/Math.abs(b));
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 
+function findById(strokeList, strokeId){
+    for(var i=0; i<strokeList.length; i++){
+        if(strokeList[i].id == strokeId){
+            return strokeList[i];    
+        }    
+    }   
+    return -1;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Stroke Functions
@@ -431,7 +576,7 @@ function getAllPointsSeparate(strokes){
     var output = [], m = [];
     for(var i=0; i<strokes.length; i++){
         for(var j=0; j<strokes[i].points.length; j++){
-            m.push(strokes[i].points[j]);
+            m.push({id:strokes[i].idnum, points:strokes[i].points[j]});
         }
         output.push(m.slice(0));
         m = [];
@@ -513,13 +658,13 @@ function angleAwayFromCenter(cx, cy, px, py){
 function drawQuad(x,y,h,w,angle,color,id){
     var rect = sketchpadPaper.rect(x, y, h, w);
     rect.rotate(angle);
-    rect.attr({fill:color, "opacity": .5});
+    rect.attr({fill:color, "opacity": .25});
     rect.toBack();
-    rect.id = id;
+    rect.id = id; 
 }
 
 function drawMarker(x,y,color){
-    var rect = sketchpadPaper.circle(x, y, 100);
+    var rect = sketchpadPaper.circle(x, y, 3);
     rect.attr({fill:color, "opacity": .5});
     rect.toBack();
 }
@@ -540,8 +685,10 @@ function drawRectangle(object, color){
 }
 
 //given a rectangle object, draw it
+//START POINT IS CENTER
 function drawRectSimple(rect, color){
-    var id = 'test';
+    var id = createShapeId('rect');
+    Object_List.push(id);
     drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
 }
 
@@ -712,13 +859,13 @@ function iterativeScoringFixedSize(points, rect, prevScore, inc){
         {cx:rect.cx, cy:rect.cy-xyInc, w:rect.w, h:rect.h, angle:rect.angle}];
 
     var actions = ['+angle','-angle','+xaxis','+yaxis','-xaxis','-yaxis'];
-    for(var i=0; i<rects.length; i++){
+    for(var i=0, j=rects.length; i<j; i++){
         results.push({rect:rects[i], score:rectScore(points, rects[i]), action:actions[i]});
     }
     results.sort(function(a,b){return a.score-b.score});
 
     //there is a better one (pick the best of all options)
-    if(inc > 500){
+    if(inc > maxStackCalls){
         console.log('max stack size');
         return {rect:rect, score:prevScore};
     }
@@ -842,6 +989,16 @@ function lineRightAngleCheck(strokes){
     return Math.abs(90-sum/strokes.length);
 }
 
+function noWindows(strokes){
+    for(var i=0; i<strokes.length; i++){
+        if(strokes[i].windows.length != 0)
+            return false;
+        if(strokes[i].type == 'window')
+            return false;
+    }
+    return true;
+}
+
 function k_combinations(set, k) {
     var i, j, combs, head, tailcombs;   
     if (k > set.length || k <= 0) {
@@ -877,7 +1034,6 @@ function rectangleScore(strokes){
     var kCombs = k_combinations(strokes, 4);
     var maxAngleDiff = 15;
     var maxCornerDist = 0;
-    
 
     for(var i=0; i<kCombs.length; i++){
         for(var x=0; x<kCombs[i].length; x++){
@@ -894,8 +1050,9 @@ function rectangleScore(strokes){
         //corners are 90 degree angles
         //average the line endings together - is corner
         var c = lineRightAngleCheck(kCombs[i]);
+        var d = noWindows(kCombs[i]);
         //corner distances are close to equal
-        if(a == true && b.length == 4 && c < maxAngleDiff){
+        if(a == true && b.length == 4 && c < maxAngleDiff && d == true){
             var k = [];
             for(var j=0; j<kCombs[i].length; j++){
                 k.push(kCombs[i][j].idnum);
@@ -1020,7 +1177,7 @@ function exportStrokes(id, name, owner, rects, north, scale){
                 var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
 
                 output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
-                    width:rectangle.rect.w, angle:a, corners:cn , strokes:st});
+                    width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
 
                 found.push(str[x].rect);
             }
@@ -1044,8 +1201,6 @@ function deleteAllObjects(sketchpadPaper){
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-var CANVAS_WIDTH = 500;
-var CANVAS_HEIGHT = 500;
 
 
 //finds an object given a stroke ID
@@ -1105,8 +1260,91 @@ function resamplePoints(points, n)
     return newpoints;
 }
 
+function iterativeSearch(ds, key){
+    for(var i=0; i<ds.length; i++){
+        if(ds[i].id == key)
+            return i;
+    }
+    return -1;
+}
+
+function iterativeSearch2(ds, key){
+    for(var i=0; i<ds.length; i++){
+        if(ds[i].idnum == key)
+            return i;
+    }
+    return -1;
+}
+
+function findCloser(sPt, choice1, choice2){
+    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2);
+    if(d1 > d2)
+        return choice2;
+    else
+        return choice1;
+}
+
+function findCloser2(sPt, ePt, choice1, choice2){
+    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2),
+        d3 = distance(ePt, choice1), d4 = distance(ePt, choice2);
+    if(d1 > d3)
+        return choice1;
+    else
+        return choice2;
+}
+
+function travelLine(slope, length, start, closeTo){
+    var px = length/Math.sqrt(1+(slope*slope));
+    var py = (slope*length)/Math.sqrt(1+(slope*slope));
+
+    var p1 = new Point(start.x+px, start.y+py);
+    var p2 = new Point(start.x-px, start.y-py);
+    
+    return findCloser(closeTo, p1, p2);
+}
+
+function withinDiff(a,b){
+    return Math.abs(Math.abs(a)-Math.abs(b));
+}
+
+function findEndPoint(startPt, endPt, strokeId, length){
+    var index = iterativeSearch(Stroke_List, strokeId);
+    var wallStroke = Stroke_List[index];
+    var slope = wallStroke.bestFitLine.slope;
+    
+    var wallEnd = findCloser2(startPt, endPt, wallStroke.points[0], wallStroke.points[wallStroke.points.length-1]);
+    var windEnd = travelLine(slope, length, startPt, endPt);
+    var windLen = distance(startPt, endPt);
+    
+    var windSlope = (endPt.y - startPt.y)/(endPt.x - startPt.x);
+
+    if(!isFinite(windSlope))
+        windSlope = 999999;
+    if(windSlope == 0)
+        windSlope = .00001;
+
+    var a1 = Math.atan(slope);
+    var a2 = Math.atan(windSlope);
+
+    var k = withinPercent(a1, a2);
+    var j = withinDiff(a1, a2);
+
+    //window angle is too much, don't create it
+    if( k > .3 && j > .5){
+        return -1;
+    }
+    //window is too long
+    if(distance(startPt, wallEnd) < windLen){
+        var newWindEnd = travelLine(slope, wallStroke.length/20, wallEnd, startPt);
+        return newWindEnd;
+    }
+    else{
+        return windEnd;
+    }
+}
+
 //based on what type of path it is return the correct path points
-function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
+function findPrintedPath(path, startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
     var simplified;
     if(windowMode) {
         console.log('window Path');
@@ -1123,11 +1361,11 @@ function findPrintedPath(startPoint, endPoint, clickedOn, windowMode, shiftDown,
         simplified = resamplePoints([startPoint, endPoint], RESAMPLE_SIZE);
     }
     else {
-        if(isLine(lastpath, 0, lastpath.length-1)) {
-            simplified = resamplePoints([lastpath[0], lastpath[lastpath.length-1]], RESAMPLE_SIZE);
+        if(isLine(path, 0, path.length-1)) {
+            simplified = resamplePoints([path[0], path[path.length-1]], RESAMPLE_SIZE);
         }
         else {
-            simplified = resamplePoints(lastpath, RESAMPLE_SIZE);
+            simplified = resamplePoints(path, RESAMPLE_SIZE);
             //simplified = lastpath;
         }
     }

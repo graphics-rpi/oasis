@@ -127,13 +127,12 @@ body
 
 #sketchpad
 {
-    width:500px;
-    height:500px;
-    margin: 0 auto;
+    width:calc(80%);
+    height:calc(90%);
+    margin: 2% 10%;
     min-width: 400px;
     min-height: 400px;
     border: 1px black solid;
-    overflow:hidden;
 }
 
 /*widget that holds feedback question we want to ask*/
@@ -390,4 +389,60 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+/* ==============================================
+ * BUTTONS FOR CHOOSING SKETCH TYPE
+ * ============================================== */
+
+.sketchButton {
+  border: none;
+  
+  width: 75%;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  font-size: 32px;
+  margin:0 auto;
+  margin-top:5%;
+  margin-bottom: 5%;
+}
+
+.sketching {
+  color: white;
+  background-color: #4CAF50; 
+}
+
+.sketching:hover {
+  color: white;
+  background-color: #6ec071; 
+}
+
+.oldstyle {
+  color: white;
+  background-color: #af504c; 
+}
+
+.oldstyle:hover {
+  color: white;
+  background-color: #c0716e; 
+}
+
+/* ==============================================
+ * MODAL POSITIONING
+ * ============================================== */
+
+#chooseType {
+  top:25%;
+
+  outline: none;
+}
+
+@media screen and (min-width: 792px) {
+  #chooseType .modal-dialog  {width:50%;}
+}
+
+.dontsee{
+  display: none;
 }

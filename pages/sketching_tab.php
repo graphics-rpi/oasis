@@ -185,17 +185,33 @@
 
     <div id= "overlay" class="overlay"> </div>
 
+    <div class="modal fade in" id="chooseType" data-backdrop="static" data-keyboard="false" role="dialog"
+      tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+<!--             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button> -->
+            <h4 class="modal-title" id="myModalLabel">Choose your drawing type</h4>
+          </div>
+          <div class="modal-body">
+            <input type="button" class="sketchButton oldstyle" id="oldbutton" value="Original">
+            <input type="button" class="sketchButton sketching" id="newbutton" value="Sketch">
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="container-parent" class="sketch_tab_parent">
       <div id="maincontent">
-          <div id="container" style="display:true"> 
+          <div id="container"> 
             <!--Loading virtual tabletop and models-->
             <script src="../js/sketching_ui.js"></script>
           </div><!--container-->
-
-          <div id="sketchpad" class=""> 
+          <div id="sketchpad">
             <script src="../js/sketchpad.js"></script>
-          </div><!--container-->
-
+          </div> <!--container-->
       </div><!--maincontent-->
 
       <div id="sidecontent">
@@ -210,13 +226,12 @@
         </div><!--title-->
 
         <div id="feedback" class="feedback">
-
-          OLD
+          <div class="dontsee">
           <label class="switch">
-            <input id="togglecanvas" type="checkbox" checked>
+            <input id="togglecanvas" type="checkbox">
             <div class="slider"></div>
           </label>
-          NEW
+        </div>
 
           <form id="fb_sketch_form" action="../php/sketch_submit_feedback.php" method="post">
             
@@ -450,6 +465,7 @@
               <input type="submit" value="submit" class="buttonsize"></input>
           </form>
           <div id="successmsg">Thank you for submitting a bug report!</div>
+          <?php echo $_SESSION['user']; ?>
         </div>
 
       </div><!--sidecontent-->
@@ -473,8 +489,7 @@ $(window).bind('resize', function(e)
 });
     
 // On Load Scripts ( Same for all pages )    
-$(document).ready(function()
-{
+$(document).ready(function() {
   // ==================================================
   // Loading in previously entered feedback
   // ==================================================
@@ -632,7 +647,6 @@ $(document).ready(function()
       }
       
       window.ribbon1.enableRibbon(); // to prevent quickly switching tabs &  losing feedback      
-
     }
   );
 
@@ -678,6 +692,22 @@ $(document).ready(function()
   {
     GLOBAL_SKETCH_ALTERED = true; // we changed something about the sketch
   });
+
+  // console.log('test1');
+  // load_model();
+  // load_sketch_sketchpad();
+  // console.log('test2');
+  // if(IS_NEW_MODEL == 0){
+  //   $('#chooseType').modal('show');
+  // }
+  // else if(IS_NEW_MODEL == 1){
+
+  // }
+  // else if(IS_NEW_MODEL == 2){
+  //     $("#container").toggle();
+  //     $("#sketchpad").toggle();
+  //     load_model();
+  // }
 
 }); // onload
 
@@ -727,12 +757,21 @@ function hide(id)
 }
 
 // $("#sketchpad").hide();
-$("#container").hide();
+$("#sketchpad").toggle();
 $("#togglecanvas").click(function() {
   $("#container").toggle();
   $("#sketchpad").toggle();
+  load_model();
 });
 
+$('#oldbutton').click(function(){
+  $('#chooseType').modal('hide');
+});
+$('#newbutton').click(function(){
+  $('#chooseType').modal('hide');
+  $("#container").toggle();
+  $("#sketchpad").toggle();
+});
 
 //////////////////////////////////////////////////////////////////////////////////////
 

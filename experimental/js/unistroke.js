@@ -801,6 +801,16 @@ function k_combinations(set, k) {
 	return combs;
 }
 
+function noWindows(strokes){
+	for(var i=0; i<strokes.length; i++){
+		if(strokes[i].windows.length != 0)
+			return false;
+		if(strokes[i].type == 'window')
+			return false;
+	}
+	return true;
+}
+
 function rectangleScore(strokes){
 	var output = [];
 	var kCombs = k_combinations(strokes, 4);
@@ -823,8 +833,9 @@ function rectangleScore(strokes){
 		//corners are 90 degree angles
 		//average the line endings together - is corner
 		var c = lineRightAngleCheck(kCombs[i]);
+		var d = noWindows(kCombs[i]);
 		//corner distances are close to equal
-		if(a == true && b.length == 4 && c < maxAngleDiff){
+		if(a == true && b.length == 4 && c < maxAngleDiff && d == true){
 			var k = [];
 			for(var j=0; j<kCombs[i].length; j++){
 				k.push(kCombs[i][j].idnum);
@@ -1063,62 +1074,62 @@ function rectangleCorners(rect){
 }
 
 function exportStrokes(id, name, owner, rects, north, scale){
-	var output = [],r = rects.slice(0);
-	var str = [], pts = [], found = [];
-	for(var i=0; i<r.length; i++){
-		for(var j=0; j<r[i].strokes.length; j++){
-			str.push({id:r[i].strokes[j], rect:i});
-		}
-	}
-	str.sort(function(a,b){return a.id-b.id});
-	for(var i=0; i<Stroke_List.length; i++){
-		var x = binarySearchPaperId(str, i);
-		var curr = Stroke_List[i];
-		//this is a normal stroke
-		if(curr.type == 'window'){}
-		else if(x == -1){
-			if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
-				pts = [curr.points[0], curr.points[curr.points.length-1]];
-			else{
-				pts = curr.points;
-			}
-			var w = [];
-			for(var j=0; j<curr.windows.length; j++){
-				var curr_win = Stroke_List[curr.windows[j]];
-				w.push([{x:curr_win.points[0].x, y:curr_win.points[0].y},
-					{x:curr_win.points[curr_win.points.length-1].x,
-						y:curr_win.points[curr_win.points.length-1].y,}])
-			}
-			output.push({type:curr.type, points:pts, windows:w});
-		}
+    var output = [],r = rects.slice(0);
+    var str = [], pts = [], found = [];
+    for(var i=0; i<r.length; i++){
+        for(var j=0; j<r[i].strokes.length; j++){
+            str.push({id:r[i].strokes[j], rect:i});
+        }
+    }
+    str.sort(function(a,b){return a.id-b.id});
+    for(var i=0; i<Stroke_List.length; i++){
+        var x = binarySearchPaperId(str, i);
+        var curr = Stroke_List[i];
+        //this is a normal stroke
+        if(curr.type == 'window'){}
+        else if(x == -1){
+            if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
+                pts = [curr.points[0], curr.points[curr.points.length-1]];
+            else{
+                pts = curr.points;
+            }
+            var w = [];
+            for(var j=0; j<curr.windows.length; j++){
+                var curr_win = Stroke_List[curr.windows[j]];
+                w.push([{x:curr_win.points[0].x, y:curr_win.points[0].y},
+                    {x:curr_win.points[curr_win.points.length-1].x,
+                        y:curr_win.points[curr_win.points.length-1].y,}])
+            }
+            output.push({type:curr.type, points:pts, windows:w});
+        }
 
-		else{
-			//find if we've already added this rectangle
-			var q = binarySearch(found, str[x].rect);
-			if(q == -1){
-				var rectangle = r[str[x].rect];
-				var rx = rectangle.rect.cx-(rectangle.rect.w/2);
-				rx = parseFloat(rx.toFixed(4));
-				var ry = rectangle.rect.cy-(rectangle.rect.h/2);
-				ry = parseFloat(ry.toFixed(4));
-				var a = (rectangle.rect.angle)*(Math.PI/180);
-				a = parseFloat(a.toFixed(4));
+        else{
+            //find if we've already added this rectangle
+            var q = binarySearch(found, str[x].rect);
+            if(q == -1){
+                var rectangle = r[str[x].rect];
+                var rx = rectangle.rect.cx-(rectangle.rect.w/2);
+                rx = parseFloat(rx.toFixed(4));
+                var ry = rectangle.rect.cy-(rectangle.rect.h/2);
+                ry = parseFloat(ry.toFixed(4));
+                var a = (rectangle.rect.angle)*(Math.PI/180);
+                a = parseFloat(a.toFixed(4));
 
-				var cn = rectangleCorners(rectangle.rect);
-				var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
+                var cn = rectangleCorners(rectangle.rect);
+                var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
 
-				output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
-					width:rectangle.rect.w, angle:a, corners:cn , strokes:st});
+                output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
+                    width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
 
-				found.push(str[x].rect);
-			}
-		}
-	}
-	var n = ((north+180)%360)*(Math.PI/180);
-	n = parseFloat(n.toFixed(4));
+                found.push(str[x].rect);
+            }
+        }
+    }
+    var n = ((north+180)%360)*(Math.PI/180);
+    n = parseFloat(n.toFixed(4));
 
-	var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output};
-	return JSON.stringify(s);
+    var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output};
+    return JSON.stringify(s);
 }
 
 function deleteAllObjects(paper){
