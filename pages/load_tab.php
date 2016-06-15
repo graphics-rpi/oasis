@@ -175,6 +175,7 @@
                     data : data,
                     success :  function(data) {
                         document.getElementById("successmsg").style.display = 'block';
+                        $('#bug_report')[0].reset();
                     }
                 });
             return false;
