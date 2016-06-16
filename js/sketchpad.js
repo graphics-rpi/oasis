@@ -4,7 +4,7 @@ var sketchpadPaper = new Raphael(sketchpad, CANVAS_WIDTH, CANVAS_HEIGHT);
 var mousedown = false;
 var lastX, lastY, path, pathString;
 
-var lineidcount = 0, objidcount = 0;
+var lineidcount = 0, objidcount = 0, labelcount = 0, ftcount = 0;
 var lastpath = [];
 var RESAMPLE_SIZE = 24, RESAMPLE_LEN_PER_SEGMENT = 250;
 var lineLength = 0, lineMin=25;
@@ -16,6 +16,7 @@ var clickedOn;
 var northArrowClick = false;
 var Rectangles = [];
 var Stroke_List = [], Object_List = [];
+var freeTransformList = []
 
 
 var CANVAS_WIDTH = SKETCHP_W();
@@ -66,6 +67,9 @@ function Stroke(id, idnum, pts, resampleSize, type){
     this.center = centroid(pts);
     this.bestFitLine = leastSquares(this.points);
     this.lengthRatio = lengthRatio(this.points, this.length);
+
+    this.transX = 0;
+    this.transY = 0;
     this.removed = false;
     this.windows = [];
     this.scores = [];
@@ -85,12 +89,20 @@ function FurnitureTemplate(name, size, h, w, color){
     this.ratio = h/w;
 }
 
-function Rectangle(rect, score, fType, strokes, labelId){
+function Rectangle(rect, score, fType, strokes, color){
     this.rect = rect;
+    this.id = createShapeId('rect');
     this.score = score;
     this.furnType = fType;
     this.strokes = strokes;
-    this.labelId = labelId;
+    this.labelId = createLabelId();
+    this.freeTransformId = '';
+    this.color = color;
+
+    drawRectSimple(this.rect, this.color, this.id);
+    drawLabel(rect, this.furnType, this.labelId);
+    Object_List.push(this.id);
+    Object_List.push(this.labelId);
 }
 
 // Loads a sketch if there is one
@@ -161,12 +173,13 @@ function loadFile(filetext){
         else if(allStrokes[i].type == 'bed' || allStrokes[i].type == 'wardrobe' || allStrokes[i].type == 'desk'){
             var r = {cx:allStrokes[i].x+(allStrokes[i].width/2), cy:allStrokes[i].y+(allStrokes[i].height/2),
                 w:allStrokes[i].width, h:allStrokes[i].height, angle:(allStrokes[i].angle*180/Math.PI)};
-            drawRectSimple(r, 'blue');
-            for(var j=0; j<allStrokes[i].strokes.length; j++){
-                addStroke(allStrokes[i].strokes[j].points);
-                strokeIds.push(allStrokes[i].strokes[j].id);
+            
+            for(var k=0; k<allStrokes[i].strokes.length; k++){
+                addStroke(allStrokes[i].strokes[k].points);
+                strokeIds.push(allStrokes[i].strokes[k].id);
             }
-            Rectangles.push(new Rectangle(r, 0, allStrokes[i].type, strokeIds.slice(0)));
+
+            Rectangles.push(new Rectangle(r, 0, allStrokes[i].type, strokeIds.slice(0), allStrokes[i].color));
             strokeIds = [];
         }
         else{
@@ -189,17 +202,17 @@ var northAngle = 0, northX = (CANVAS_WIDTH/2), northY = 5, northWidth = 30, nort
 
 var northArrow = sketchpadPaper.image("../images/northarrow.png", 0, 0, northWidth, northHeight)
     .attr({cursor: "move", transform: "R" + northAngle + "T" + northX + "," + northY });
-northArrow.drag(dragMove, dragStart, dragStop);
+northArrow.drag(arrowDragMove, arrowDragStart, arrowDragStop);
 
 // Set up the object for dragging
-function dragStart(){
+function arrowDragStart(){
     this.ox = northX;
     this.oy = northY;
     northArrowClick = true;
 }
 
 //what does the arrow do when we let go
-function dragStop() {
+function arrowDragStop() {
     northAngle = angleAwayFromCenter(CANVAS_WIDTH/2,CANVAS_WIDTH/2, northX+15, northY+20);
     // document.getElementById('northDir').innerHTML = (northAngle+90);
     northArrow.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 350, "<>");
@@ -207,7 +220,7 @@ function dragStop() {
 }
 
 //follow the mouse
-function dragMove(dx, dy) {
+function arrowDragMove(dx, dy) {
     northX = Math.min(CANVAS_WIDTH-30, this.ox+dx);
     northY = Math.min(CANVAS_HEIGHT-40, this.oy+dy);
     northX = Math.max(0, northX);
@@ -249,7 +262,7 @@ function pathMouseUp(e){
 }
 
 $(sketchpad).mousedown(function (e) {
-    if(!northArrowClick){
+    if(!northArrowClick && !HOVERING_OBJECT){
         lastpath = [];
         mousedown = true;
 
@@ -268,7 +281,7 @@ $(sketchpad).mousedown(function (e) {
 });
 
 $(sketchpad).mouseup(function () {
-    if(northArrowClick == true)
+    if(northArrowClick == true || HOVERING_OBJECT == true)
         return;
     mousedown = false;
     path.remove();
@@ -295,8 +308,7 @@ $(sketchpad).mouseup(function () {
     for(var i=0; i<rectStrokes.length; i++){
         var r = rectangleFitter(rectStrokes[i]);
         var c = rectangleClassification(r);
-        Rectangles.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes));
-        drawRectangleStrokes(r,c.color);
+        Rectangles.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
     }
 
     lastpath = [];
@@ -309,7 +321,7 @@ $(sketchpad).mousemove(function (e) {
     if (!mousedown) {
         return;
     }
-    if(northArrowClick){
+    if(northArrowClick || HOVERING_OBJECT){
         return;
     }
     var x = e.offsetX, y = e.offsetY;
@@ -364,8 +376,7 @@ function drawScene(rectStrokes, strokelist, rects, paperobj){
     for(var i=0; i<rectStrokes.length; i++){
         var r = rectangleFitter(rectStrokes[i]);
         var c = rectangleClassification(r);
-        rects.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes));
-        drawRectangleStrokes(r,c.color);
+        rects.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
     }
 }
 
@@ -576,9 +587,9 @@ function getAllPointsSeparate(strokes){
     var output = [], m = [];
     for(var i=0; i<strokes.length; i++){
         for(var j=0; j<strokes[i].points.length; j++){
-            m.push({id:strokes[i].idnum, points:strokes[i].points[j]});
+            m.push(strokes[i].points[j]);
         }
-        output.push(m.slice(0));
+        output.push({id: strokes[i].idnum, points:m.slice(0)});
         m = [];
     }
     return output;
@@ -633,6 +644,20 @@ function createShapeId(type){
     return id;
 }
 
+//create the next id for a shape
+function createLabelId(){
+    var id = 'label_' + labelcount;
+    labelcount++;
+    return id;
+}
+
+//create the next id for a shape
+function createFTId(){
+    var id = 'ft_' + ftcount;
+    ftcount++;
+    return id;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //Point Manuipulation
 
@@ -655,12 +680,183 @@ function angleAwayFromCenter(cx, cy, px, py){
 ////////////////////////////////////////////////////////////////////////////////////////////
 //Drawing Functions
 
+var sketchSet = sketchpadPaper.set();
+
+function onContextMenuShow (target, pos)
+{
+    var s = target.raphael;
+
+    switch (s.type)
+    {
+        case 'rect':
+            var w = s.getBBox().width; // get current width (size)
+            $('#menuRect')
+                .find('a[name="size"]').removeAttr('checked')
+                    .parent().removeClass('checked')
+                    .end()
+                .end()
+                .find('a[name="size"][w="' + w + '"]').attr('checked', 'checked')
+                    .parent().addClass('checked');
+            break;
+    }
+
+    $('#menuRect, #menuCircle')
+        .find('a[name="style"]').removeAttr('checked')
+            .parent().removeClass('checked')
+            .end()
+        .end()
+        .find('a[name="style"][val="' + s.class + '"]').attr('checked', 'checked')
+            .parent().addClass('checked');
+}
+
+
+// 4. Prepare context menu item onSelect handler
+
+function onContextMenuItemSelect (menuitem, target, href, pos)
+{
+    var s = target.get(0).raphael;
+
+
+    if (menuitem.attr('name') == 'type')
+    {
+        var val = menuitem.attr('val');
+
+        switch (val)
+        {
+            case 'default':
+                s.style('base', val, {duration: 0, easing: false});
+                break;
+            case 'custom':
+                s.style('base', val, {duration: 300, easing: 'backOut'});
+                break;
+        }
+    }
+    else
+    {
+        switch (s.type)
+        {
+            case 'circle':
+                s.animate({r: menuitem.attr('r')}, 800, 'bounce');
+                break;
+            case 'rect':
+                var w = menuitem.attr('w');
+                s.animate({width: w, height: w}, 800, 'bounce');
+                break;
+        }
+    }
+}
+
 function drawQuad(x,y,h,w,angle,color,id){
     var rect = sketchpadPaper.rect(x, y, h, w);
     rect.rotate(angle);
     rect.attr({fill:color, "opacity": .25});
     rect.toBack();
-    rect.id = id; 
+    rect.id = id;
+    rect.drag(objectDragMove, objectDragStart, objectDragStop);
+
+    var b = rect.getBBox();
+
+    var ftId = createFTId();
+    rect.ftid = ftId;
+    var ft = sketchpadPaper.freeTransform(rect, {
+        boundary:{
+            x:(b.width/2)+10, y:(b.height/2)+10, width:(CANVAS_WIDTH-b.width), height:(CANVAS_HEIGHT-b.height)-20,
+        },
+        distance:.75,
+        drag:'self',
+        scale:false,
+        rotate:false,
+        draw:false,
+    });
+    ft.attrs.rotate = angle;
+    ft.id  = ftId;
+    freeTransformList.push(ft);
+    // rect.drag(objectDragMove, objectDragStart, objectDragStop);
+
+    $([rect.node]).contextMenu({
+        menu:     'menuRect',
+        onShow:   onContextMenuShow,
+        onSelect: onContextMenuItemSelect
+    });
+
+    sketchSet.push(rect).style();
+}
+
+function translatePoints(points, x, y){
+    var output = [];
+    for(var i=0; i<points.length; i++){
+        output.push({x:points[i].x+x, y:points[i].y+y});
+    }
+    return output;
+}
+
+function moveLabel(labelId, rect, x, y, text){
+    var s = sketchpadPaper.getById(labelId);
+    s.remove();
+    drawLabel({cx:(rect.cx+x), cy:(rect.cy+y), h:rect.h, w:rect.w, angle:rect.angle}, text, labelId);
+}
+
+function moveStroke(idnum, ft, x, y){
+    var currStroke = Stroke_List[idnum];
+    var sId = currStroke.id;
+    var s = sketchpadPaper.getById(sId);
+    // console.log('before', currStroke.points[0]);
+    s.remove();
+    var transPts = translatePoints(currStroke.points, x, y);
+
+    currStroke.midpoint = {x:(currStroke.points[0].x + currStroke.points[currStroke.points.length-1].x)/2,
+                        y:(currStroke.points[0].y + currStroke.points[currStroke.points.length-1].y)/2};
+    currStroke.center = centroid(currStroke.points);
+    currStroke.bestFitLine = leastSquares(currStroke.points);
+    currStroke.transX = x;
+    currStroke.transY = y;
+
+    var path = pointsToPath(transPts);
+
+    var drawn_line = sketchpadPaper.path(path);
+    drawn_line.id = currStroke.id;
+    if(currStroke.type == 'window')
+        drawn_line.attr({"stroke": "#0EBFE9", "stroke-width": 5});
+    else {
+        drawn_line.attr({"stroke": "#000000", "stroke-width": 3});
+        drawn_line.mouseout(hoverout);
+        drawn_line.mouseover(hovering);
+        drawn_line.mousedown(pathMouseDown);
+        drawn_line.mouseup(pathMouseUp);
+    }
+
+
+
+    //MOVE WINDOWS TOO
+    for(var i=0; i<currStroke.windows.length; i++){
+        moveStroke(currStroke.windows[i], x, y);
+    }
+    
+}
+
+var sumX = 0, sumY = 0;
+
+// Set up the object for dragging
+function objectDragStart(){
+    sumX = 0, sumY = 0;
+}
+
+//what does the arrow do when we let go
+function objectDragStop() {
+
+    var rect = findById(Rectangles, this.id);
+    var ft = findById(freeTransformList, this.ftid);
+    sumX = ft.attrs.translate.x;
+    sumY = ft.attrs.translate.y;
+    for(var i=0; i<rect.strokes.length; i++){
+        moveStroke(rect.strokes[i], ft, sumX, sumY);
+    }
+    moveLabel(rect.labelId, rect.rect, sumX, sumY, rect.furnType);
+}
+
+//follow the mouse
+function objectDragMove(dx, dy) {
+    // console.log('were going');
 }
 
 function drawMarker(x,y,color){
@@ -686,9 +882,7 @@ function drawRectangle(object, color){
 
 //given a rectangle object, draw it
 //START POINT IS CENTER
-function drawRectSimple(rect, color){
-    var id = createShapeId('rect');
-    Object_List.push(id);
+function drawRectSimple(rect, color, id){
     drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
 }
 
@@ -703,6 +897,17 @@ function drawRectangleStrokes(rectangle, color){
     var id = createShapeId('rect');
     Object_List.push(id);
     drawQuad(r.rect.cx-(r.rect.w/2), r.rect.cy-(r.rect.h/2), r.rect.w, r.rect.h, (360-r.rect.angle), color, id);
+}
+
+function drawLabel(rectangle, text, labelId){
+    var t;
+    if(typeof text === 'object')
+        t = text.name;
+    else
+        t = text;
+
+    var label = sketchpadPaper.text(rectangle.cx, rectangle.cy, t);
+    label.id = labelId;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1403,3 +1608,5 @@ function isLine(points, a, b){
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+

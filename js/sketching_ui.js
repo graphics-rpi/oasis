@@ -1702,7 +1702,7 @@ function bind_furniture_handlers(raphael_obj, ITEM_STR)
 
           // Initate
           var uL = new Array();
-          var uR = new Array();
+       f  var uR = new Array();
           var lR = new Array();
           var lL = new Array();
 
@@ -3038,7 +3038,6 @@ function load_sketch_init()
 
     }
   }).success(function(){
-    console.log('is new model', IS_NEW_MODEL);
     if(IS_NEW_MODEL == 0){
       $('#chooseType').modal('show');
     }
@@ -3046,9 +3045,8 @@ function load_sketch_init()
 
     }
     if(IS_NEW_MODEL == 2){
-      $("#container").toggle();
-      $("#sketchpad").toggle();
-      load_model();
+      // $("#container").toggle();
+      // $("#sketchpad").toggle();
     }
   });
 }

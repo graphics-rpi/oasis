@@ -26,6 +26,7 @@ Raphael.el.x = function () { return this.is('circle') ? this.attr('cx') : this.a
 Raphael.el.y = function () { return this.is('circle') ? this.attr('cy') : this.attr('y'); };
 Raphael.el.o = function () { this.ox = this.x(); this.oy = this.y(); return this; };
 
+var HOVERING_OBJECT = false;
 
 /**
  *
@@ -93,51 +94,7 @@ Raphael.el.getABox = function ()
  * @license     WTFPL Version 2 ( http://en.wikipedia.org/wiki/WTFPL )
  *
  */
-Raphael.el.draggable = function (options)
-{
-    $.extend(true, this, {
-        margin: 0               // I might expand this in the future
-    }, options || {margin: 10});
 
-    var start = function () {
-            this.o().toFront(); // store original pos, and zIndex to top
-
-            if (this.dots && this.drawDots)
-            {
-                this.drawDots();
-            }
-        },
-        move = function (dx, dy, mx, my, ev) {
-            var b = this.getABox(); // Raphael's getBBox() on steroids
-            var px = mx - b.offset.left,
-                py = my - b.offset.top,
-                x = this.ox + dx,
-                y = this.oy + dy,
-                r = this.is('circle') ? b.width / 2 : 0;
-
-            var x = Math.min(
-                        Math.max(0 + this.margin + (this.is('circle') ? r : 0), x),
-                        this.paper.width - (this.is('circle') ? r : b.width) - this.margin),
-                y = Math.min(
-                        Math.max(0 + this.margin + (this.is('circle') ? r : 0), y),
-                        this.paper.height - (this.is('circle') ? r : b.height) - this.margin);
-
-            var pos = { x: x, y: y, cx: x, cy: y };
-
-            this.attr(pos);
-
-            if (this.dots && this.drawDots)
-            {
-                this.drawDots();
-            }
-        },
-        end = function () {
-        };
-
-        this.drag(move, start, end);
-
-    return this; // chaining
-};
 
 
 /**
@@ -148,7 +105,6 @@ Raphael.el.draggable = function (options)
  * @license     WTFPL Version 2 ( http://en.wikipedia.org/wiki/WTFPL )
  *
  */
-Raphael.st.draggable = function (options) { for (var i in this.items) this.items[i].draggable(options); return this; };
 
 
 /**
@@ -166,8 +122,8 @@ Raphael.el.style = function (state, style, aniOptions)
         this.aniOptions = aniOptions ? aniOptions : null;
 
         // start assigning some basic behaviors
-        this.mouseover(function () { this.style('hover'); });
-        this.mouseout(function () { this.style('base'); });
+        this.mouseover(function () { HOVERING_OBJECT = true; this.style('hover'); });
+        this.mouseout(function () { HOVERING_OBJECT = false; this.style('base'); });
         this.mousedown(function () { this.style('mousedown'); });
         this.click(function () { this.style('hover'); });
     }
@@ -285,50 +241,6 @@ Raphael.setStyles
                     stroke:         '#617a8b'
                 }
             }
-        },
-
-        circle:
-        {
-            // you can add your own set of visual states
-            'default':
-            {
-                base:
-                {
-                    fill:           '#ddd',
-                    stroke:         '#333',
-                    'stroke-width': 2
-                },
-                hover:
-                {
-                    cursor:         'pointer',
-                    fill:           '#b6c8e4'
-                },
-                mousedown:
-                {
-                    fill:           '#a3badc'
-                }
-            },
-            'custom':
-            {
-                base:
-                {
-                    fill:           '#d1a39c',
-                    stroke:         '#b87267',
-                    'stroke-width': 4
-                },
-                hover:
-                {
-                    cursor:         'pointer',
-                    fill:           '#de8f8f',
-                    stroke:         '#cf5c5c',
-                    'stroke-width': 4
-                },
-                mousedown:
-                {
-                    fill:           '#cfa49e',
-                    stroke:         '#824848'
-                }
-            }
         }
     }
 );
@@ -396,8 +308,8 @@ Raphael.setStyles
                             if( el.hasClass('disabled') ) return false;
 
                             // show context menu on mouse coordinates or keep it within visible window area
-                            var x = Math.min(e.pageX, $(document).width() - $m.width() - 5),
-                                y = Math.min(e.pageY, $(document).height() - $m.height() - 5);
+                            var x = Math.min(e.offsetX+95, $(document).width() - $m.width() - 5),
+                                y = Math.min(e.offsetY+45, $(document).height() - $m.height() - 5);
 
                             // Show the menu
                             $(document).unbind('click');
@@ -499,14 +411,14 @@ Raphael.setStyles
                     });
                 });
 
-                // Disable text selection
-                if( $.browser.mozilla ) {
-                    $m.each( function() { $(this).css({ 'MozUserSelect' : 'none' }); });
-                } else if( $.browser.msie ) {
-                    $m.each( function() { $(this).bind('selectstart.disableTextSelect', function() { return false; }); });
-                } else {
-                    $m.each(function() { $(this).bind('mousedown.disableTextSelect', function() { return false; }); });
-                }
+                // // Disable text selection
+                // if( $.browser.mozilla ) {
+                //     $m.each( function() { $(this).css({ 'MozUserSelect' : 'none' }); });
+                // } else if( $.browser.msie ) {
+                //     $m.each( function() { $(this).bind('selectstart.disableTextSelect', function() { return false; }); });
+                // } else {
+                //     $m.each(function() { $(this).bind('mousedown.disableTextSelect', function() { return false; }); });
+                // }
                 // Disable browser context menu (requires both selectors to work in IE/Safari + FF/Chrome)
                 el.add($('UL.contextMenu')).bind('contextmenu', function() { return false; });
 
@@ -540,115 +452,115 @@ Raphael.setStyles
 ///////////////////////////////////////////////////////////////////////////////
 // The demo
 
-$(document).ready(function() {
+// $(document).ready(function() {
 
-    // 1. Create paper, sets, and shapes
+//     // 1. Create paper, sets, and shapes
 
-    var paper = Raphael('SVG_DND_HOLDER_1', 640, 200);
-    var set = paper.set(),
-        rect1 = paper.rect(10, 15, 64, 64, 5),
-        rect2 = paper.rect(10, 105, 64, 64, 5),
-        circle1 = paper.circle(150, 48, 30),
-        circle2 = paper.circle(150, 138, 30);
+//     var paper = Raphael('SVG_DND_HOLDER_1', 640, 200);
+//     var set = paper.set(),
+//         rect1 = paper.rect(10, 15, 64, 64, 5),
+//         rect2 = paper.rect(10, 105, 64, 64, 5),
+//         circle1 = paper.circle(150, 48, 30),
+//         circle2 = paper.circle(150, 138, 30);
 
-    // 2. Viola
+//     // 2. Viola
 
-    set .push(rect1, rect2, circle1, circle2)   // populate the Set
-        .style()                                // Yes, it's that easy
-        .draggable();                           // Yes, that's it
+//     set .push(rect1, rect2, circle1, circle2)   // populate the Set
+//         .style()                                // Yes, it's that easy
+//         .draggable();                           // Yes, that's it
 
 
-    // 3. Prepare context menu onShow handler
+//     // 3. Prepare context menu onShow handler
         
-    function onContextMenuShow (target, pos)
-    {
-        var s = target.raphael;
+//     function onContextMenuShow (target, pos)
+//     {
+//         var s = target.raphael;
 
-        switch (s.type)
-        {
-            case 'circle':
-                var r = s.attr('r'); // get current radius
-                $('#menuCircle')
-                    .find('a[name="radius"]').removeAttr('checked')
-                        .parent().removeClass('checked')
-                        .end()
-                    .end().
-                    find('a[name="radius"][r="' + r + '"]').attr('checked', 'checked')
-                        .parent().addClass('checked');
-                break;
-            case 'rect':
-                var w = s.getBBox().width; // get current width (size)
-                $('#menuRect')
-                    .find('a[name="size"]').removeAttr('checked')
-                        .parent().removeClass('checked')
-                        .end()
-                    .end()
-                    .find('a[name="size"][w="' + w + '"]').attr('checked', 'checked')
-                        .parent().addClass('checked');
-                break;
-        }
+//         switch (s.type)
+//         {
+//             case 'circle':
+//                 var r = s.attr('r'); // get current radius
+//                 $('#menuCircle')
+//                     .find('a[name="radius"]').removeAttr('checked')
+//                         .parent().removeClass('checked')
+//                         .end()
+//                     .end().
+//                     find('a[name="radius"][r="' + r + '"]').attr('checked', 'checked')
+//                         .parent().addClass('checked');
+//                 break;
+//             case 'rect':
+//                 var w = s.getBBox().width; // get current width (size)
+//                 $('#menuRect')
+//                     .find('a[name="size"]').removeAttr('checked')
+//                         .parent().removeClass('checked')
+//                         .end()
+//                     .end()
+//                     .find('a[name="size"][w="' + w + '"]').attr('checked', 'checked')
+//                         .parent().addClass('checked');
+//                 break;
+//         }
 
-        $('#menuRect, #menuCircle')
-            .find('a[name="style"]').removeAttr('checked')
-                .parent().removeClass('checked')
-                .end()
-            .end()
-            .find('a[name="style"][val="' + s.class + '"]').attr('checked', 'checked')
-                .parent().addClass('checked');
-    }
+//         $('#menuRect, #menuCircle')
+//             .find('a[name="style"]').removeAttr('checked')
+//                 .parent().removeClass('checked')
+//                 .end()
+//             .end()
+//             .find('a[name="style"][val="' + s.class + '"]').attr('checked', 'checked')
+//                 .parent().addClass('checked');
+//     }
 
  
-    // 4. Prepare context menu item onSelect handler
+//     // 4. Prepare context menu item onSelect handler
 
-    function onContextMenuItemSelect (menuitem, target, href, pos)
-    {
-        var s = target.get(0).raphael;
-
-
-        if (menuitem.attr('name') == 'style')
-        {
-            var val = menuitem.attr('val');
-
-            switch (val)
-            {
-                case 'default':
-                    s.style('base', val, {duration: 0, easing: false});
-                    break;
-                case 'custom':
-                    s.style('base', val, {duration: 300, easing: 'backOut'});
-                    break;
-            }
-        }
-        else
-        {
-            switch (s.type)
-            {
-                case 'circle':
-                    s.animate({r: menuitem.attr('r')}, 800, 'bounce');
-                    break;
-                case 'rect':
-                    var w = menuitem.attr('w');
-                    s.animate({width: w, height: w}, 800, 'bounce');
-                    break;
-            }
-        }
-    }
+//     function onContextMenuItemSelect (menuitem, target, href, pos)
+//     {
+//         var s = target.get(0).raphael;
 
 
-    // 5. Attach context menus
+//         if (menuitem.attr('name') == 'style')
+//         {
+//             var val = menuitem.attr('val');
 
-    $([rect1.node, rect2.node]).contextMenu({
-        menu:     'menuRect',
-        onShow:   onContextMenuShow,
-        onSelect: onContextMenuItemSelect
-    });
+//             switch (val)
+//             {
+//                 case 'default':
+//                     s.style('base', val, {duration: 0, easing: false});
+//                     break;
+//                 case 'custom':
+//                     s.style('base', val, {duration: 300, easing: 'backOut'});
+//                     break;
+//             }
+//         }
+//         else
+//         {
+//             switch (s.type)
+//             {
+//                 case 'circle':
+//                     s.animate({r: menuitem.attr('r')}, 800, 'bounce');
+//                     break;
+//                 case 'rect':
+//                     var w = menuitem.attr('w');
+//                     s.animate({width: w, height: w}, 800, 'bounce');
+//                     break;
+//             }
+//         }
+//     }
 
-    $([circle1.node, circle2.node]).contextMenu({
-        menu:     'menuCircle',
-        onShow:   onContextMenuShow,
-        onSelect: onContextMenuItemSelect
-    });
 
-});
+//     // 5. Attach context menus
+
+//     $([rect1.node, rect2.node]).contextMenu({
+//         menu:     'menuRect',
+//         onShow:   onContextMenuShow,
+//         onSelect: onContextMenuItemSelect
+//     });
+
+//     $([circle1.node, circle2.node]).contextMenu({
+//         menu:     'menuCircle',
+//         onShow:   onContextMenuShow,
+//         onSelect: onContextMenuItemSelect
+//     });
+
+// });
 
 

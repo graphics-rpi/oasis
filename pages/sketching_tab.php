@@ -152,6 +152,7 @@
                     data : data,
                     success :  function(data) {
                         document.getElementById("successmsg").style.display = 'block';
+                        $('#bug_report')[0].reset();
                     }
                 });
             return false;
@@ -210,7 +211,16 @@
             <script src="../js/sketching_ui.js"></script>
           </div><!--container-->
           <div id="sketchpad">
+            <script src="../js/contextmenu.js"></script>
             <script src="../js/sketchpad.js"></script>
+
+            <ul id="menuRect" class="contextMenu">
+              <li><a type="radio" name="type" href="#size_64">Bed</a></li>
+              <li><a type="radio" name="type" href="#size_100">Desk</a></li>
+              <li><a type="radio" name="type" href="#size_130">Skylight</a></li>
+              <li><a type="radio" name="type" href="#size_130">Wardrobe</a></li>
+            </ul>
+
           </div> <!--container-->
       </div><!--maincontent-->
 
@@ -465,7 +475,6 @@
               <input type="submit" value="submit" class="buttonsize"></input>
           </form>
           <div id="successmsg">Thank you for submitting a bug report!</div>
-          <?php echo $_SESSION['user']; ?>
         </div>
 
       </div><!--sidecontent-->
