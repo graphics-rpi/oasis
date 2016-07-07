@@ -28,8 +28,6 @@
     <meta charset="utf-8" />
     <title> OASIS </title>
 
-
-
     <!--  the main stylesheet for our ui framework -->
     <link rel="stylesheet" href="../css/main-style.css" />
     <!-- \ the main stylesheet for our ui framework -->
@@ -54,6 +52,7 @@
 
     <!-- libraries used for the sketching interface -->
     <script src="../js/lib/raphael.js"></script>
+    <script src="../js/lib/ndollar.js"></script>
     <script src="../js/lib/raphael.free_transform.js"></script>
     <script src="../js/lib/spin.min.js"></script>
     <script src="../js/objFileContents.js"></script>
@@ -94,7 +93,7 @@
     ?>
 
     <script type="html/x-acidjs-ribbon-template" id="styles_custom_tool_template">
-      <div class="my-custom-styles-tool" data-tool-name="my-custom-styles">
+      <div id = 'testingthis' class="my-custom-styles-tool" data-tool-name="my-custom-styles">
         <ul class="acidjs-ui-ribbon-tool-exclusive-buttons">
           <# for(var i=0 ; i < styles.length; i ++) { #>
             <# var style=s tyles[i]; #>
@@ -197,8 +196,8 @@
             <h4 class="modal-title" id="myModalLabel">Choose your drawing type</h4>
           </div>
           <div class="modal-body">
-            <input type="button" class="sketchButton oldstyle" id="oldbutton" value="Original">
-            <input type="button" class="sketchButton sketching" id="newbutton" value="Sketch">
+            <input type="button" class="sketchButton oldstyle" id="oldbutton" value="Classic">
+            <input type="button" class="sketchButton sketching" id="newbutton" value="Sketching">
           </div>
         </div>
       </div>
@@ -215,10 +214,11 @@
             <script src="../js/sketchpad.js"></script>
 
             <ul id="menuRect" class="contextMenu">
-              <li><a type="radio" name="type" href="#size_64">Bed</a></li>
-              <li><a type="radio" name="type" href="#size_100">Desk</a></li>
-              <li><a type="radio" name="type" href="#size_130">Skylight</a></li>
-              <li><a type="radio" name="type" href="#size_130">Wardrobe</a></li>
+              <li>Reclassify this Object</li>
+              <li class="separator"><a type="radio" name="type" val='bed' href="#size_64">Bed</a></li>
+              <li><a type="radio" name="type" val='desk' href="#size_100">Desk</a></li>
+              <li><a type="radio" name="type" val='skylight' href="#size_130">Skylight</a></li>
+              <li><a type="radio" name="type" val='wardrobe' href="#size_130">Wardrobe</a></li>
             </ul>
 
           </div> <!--container-->
@@ -780,6 +780,8 @@ $('#newbutton').click(function(){
   $('#chooseType').modal('hide');
   $("#container").toggle();
   $("#sketchpad").toggle();
+  ribbon1.disableTools(["button-straight-wall", "button-straight-window", "button-skylight",
+    "button-bed", "button-desk", "button-closet", "button-remove", "button-change-orientation"]);
 });
 
 //////////////////////////////////////////////////////////////////////////////////////

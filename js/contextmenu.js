@@ -7,6 +7,7 @@
 // Please scroll to the bottom to look at the usage code of this demo.
 // These below are some core extensions to RaphaelJS that makes it all happen.
 
+var testobj;
 
 /**
  * Simplifies something like this:
@@ -27,6 +28,7 @@ Raphael.el.y = function () { return this.is('circle') ? this.attr('cy') : this.a
 Raphael.el.o = function () { this.ox = this.x(); this.oy = this.y(); return this; };
 
 var HOVERING_OBJECT = false;
+var HOVER_OBJ_ID = " ";
 
 /**
  *
@@ -122,9 +124,31 @@ Raphael.el.style = function (state, style, aniOptions)
         this.aniOptions = aniOptions ? aniOptions : null;
 
         // start assigning some basic behaviors
-        this.mouseover(function () { HOVERING_OBJECT = true; this.style('hover'); });
-        this.mouseout(function () { HOVERING_OBJECT = false; this.style('base'); });
+        // this.mouseover(function () { HOVERING_OBJECT = true; HOVER_OBJ_ID = this.id; this.style('hover'); });
+        // this.mouseout(function () { HOVERING_OBJECT = false; HOVER_OBJ_ID = this.id; this.style('base'); });
+        // this.mousedown(function () { this.style('mousedown'); });
+        // this.click(function () { this.style('hover'); });
+                // start assigning some basic behaviors
+        this.mouseover(function () {
+            HOVER_OBJ_ID = this.id;
+        });
+        this.mouseout(function () {
+            HOVER_OBJ_ID = this.id;
+        });
         this.mousedown(function () { this.style('mousedown'); });
+        this.dblclick(function () {
+            if(sketchpadPaper.getById(this.id).freeTransform.opts.drag == false ){
+                sketchpadPaper.getById(this.id).freeTransform.setOpts({drag: 'self'});
+                sketchpadPaper.getById(this.id).drag(objectDragMove, objectDragStart, objectDragStop);
+                HOVERING_OBJECT = true;
+                this.style('hover');
+            }
+            else{
+                sketchpadPaper.getById(this.id).freeTransform.setOpts({drag:false});
+                HOVERING_OBJECT = false;
+                this.style('base');
+            }
+        });
         this.click(function () { this.style('hover'); });
     }
 
@@ -206,38 +230,39 @@ Raphael.setStyles
             {
                 base:
                 {
-                    fill:           '#ddd',
-                    stroke:         '#333',
+                    // fill:           '#ddd',
+                    opacity: .25, 
                     'stroke-width': 2
                 },
                 hover:
                 {
                     cursor:         'pointer',
-                    fill:           '#b6c8e4'
+
+                    opacity:        .4
                 },
                 mousedown:
                 {
-                    fill:           '#a3badc'
+                    // fill:           '#a3badc'
                 }
             },
             'custom':
             {
                 base:
                 {
-                    fill:           '#abb4c2',
-                    stroke:         '#79889d',
+                    // fill:           '#abb4c2',
+                    opacity: .25, 
                     'stroke-width': 4
                 },
                 hover:
                 {
                     cursor:         'pointer',
-                    fill:           '#8ea2b0',
+                    opacity:        .4,
                     stroke:         '#617a8b',
                     'stroke-width': 4
                 },
                 mousedown:
                 {
-                    fill:           '#527b94',
+                    // fill:           '#527b94',
                     stroke:         '#617a8b'
                 }
             }

@@ -1702,7 +1702,7 @@ function bind_furniture_handlers(raphael_obj, ITEM_STR)
 
           // Initate
           var uL = new Array();
-       f  var uR = new Array();
+          var uR = new Array();
           var lR = new Array();
           var lL = new Array();
 

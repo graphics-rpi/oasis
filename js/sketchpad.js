@@ -16,7 +16,8 @@ var clickedOn;
 var northArrowClick = false;
 var Rectangles = [];
 var Stroke_List = [], Object_List = [];
-var freeTransformList = []
+var freeTransformList = [];
+var ndollar = new NDollarRecognizer(true);
 
 
 var CANVAS_WIDTH = SKETCHP_W();
@@ -40,12 +41,12 @@ ObjectTemplates.push(new ObjectTemplate("desk", ["rect", "D"]));
 
 var FurnitureTemplates = [];
 FurnitureTemplates.push(new FurnitureTemplate('bed','twin',100,200,'blue'));
-FurnitureTemplates.push(new FurnitureTemplate('bed','full',138,200, 'red'));
-FurnitureTemplates.push(new FurnitureTemplate('bed','queen',150,213, 'green'));
-FurnitureTemplates.push(new FurnitureTemplate('bed','king',200,213, 'yellow'));
-FurnitureTemplates.push(new FurnitureTemplate('desk','medium',85,175, 'purple'));
-FurnitureTemplates.push(new FurnitureTemplate('wardrobe','small',150,200, 'brown'));
-FurnitureTemplates.push(new FurnitureTemplate('wardrobe','large',200,300, 'pink'));
+FurnitureTemplates.push(new FurnitureTemplate('bed','full',138,200, 'blue'));
+FurnitureTemplates.push(new FurnitureTemplate('bed','queen',150,213, 'blue'));
+FurnitureTemplates.push(new FurnitureTemplate('bed','king',200,213, 'blue'));
+FurnitureTemplates.push(new FurnitureTemplate('desk','medium',85,175, 'red'));
+FurnitureTemplates.push(new FurnitureTemplate('wardrobe','small',150,200, 'green'));
+FurnitureTemplates.push(new FurnitureTemplate('wardrobe','large',200,300, 'green'));
 
 function SketchPad(canvasId, CANVAS_WIDTH, CANVAS_HEIGHT){
     this.canvas = document.getElementById(canvasId);
@@ -73,6 +74,7 @@ function Stroke(id, idnum, pts, resampleSize, type){
     this.removed = false;
     this.windows = [];
     this.scores = [];
+    this.originalPoints = this.points;
 }
 
 function ObjectTemplate(name, primitives){
@@ -89,8 +91,8 @@ function FurnitureTemplate(name, size, h, w, color){
     this.ratio = h/w;
 }
 
-function Rectangle(rect, score, fType, strokes, color){
-    this.rect = rect;
+function RectangleObject(rect, score, fType, strokes, color){
+    this.rect = {cx:(rect.cx), cy:(rect.cy), h:rect.h, w:rect.w, angle:rect.angle};
     this.id = createShapeId('rect');
     this.score = score;
     this.furnType = fType;
@@ -98,8 +100,12 @@ function Rectangle(rect, score, fType, strokes, color){
     this.labelId = createLabelId();
     this.freeTransformId = '';
     this.color = color;
+    this.userClassify = false;
+    this.originalRect = {cx:(rect.cx), cy:(rect.cy), h:rect.h, w:rect.w, angle:rect.angle};
+    this.changeX = 0;
+    this.changeY = 0;
 
-    drawRectSimple(this.rect, this.color, this.id);
+    drawRect(this.rect, this.color, this.id);
     drawLabel(rect, this.furnType, this.labelId);
     Object_List.push(this.id);
     Object_List.push(this.labelId);
@@ -110,7 +116,6 @@ function Rectangle(rect, score, fType, strokes, color){
 
 function load_sketch_sketchpad()
 {
-    console.log()
   // Froms an ajax call to the server to get data of the working model
   $.getJSON("../php/get_session_model.php",
   {}, function(e)
@@ -147,11 +152,11 @@ function load_sketch_sketchpad()
           window.location = "../pages/login_page.php";
         }
     }
-
   });
 }
 
 function loadFile(filetext){
+
     var sketchObject = JSON.parse(filetext);
     var allStrokes = sketchObject.items;
     var strokeIds = [];
@@ -179,7 +184,7 @@ function loadFile(filetext){
                 strokeIds.push(allStrokes[i].strokes[k].id);
             }
 
-            Rectangles.push(new Rectangle(r, 0, allStrokes[i].type, strokeIds.slice(0), allStrokes[i].color));
+            Rectangles.push(new RectangleObject(r, 0, allStrokes[i].type, strokeIds.slice(0), allStrokes[i].color));
             strokeIds = [];
         }
         else{
@@ -280,6 +285,7 @@ $(sketchpad).mousedown(function (e) {
     }
 });
 
+
 $(sketchpad).mouseup(function () {
     if(northArrowClick == true || HOVERING_OBJECT == true)
         return;
@@ -292,29 +298,50 @@ $(sketchpad).mouseup(function () {
         windowMode = false;
         return;
     }
-
+    // console.log(lastpath.length);
     //turns path into a processable path based on windowmode, etc.
     var processed = findPrintedPath(lastpath, startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
+    // console.log(processed.length, PathLength(lastpath));
     process_line(processed, windowMode, clickedOn);
-    var rectStrokes = [];
-    if(Stroke_List.length > 3){
-        rectStrokes = rectangleScore(Stroke_List);
-    }
-    rectStrokes = chooseBestRectangles(rectStrokes);
+    var result = ndollar.Recognize([processed], true, false, true);
+    result.Score = parseFloat(result.Score);
+    console.log(result.Name, result.Score);
 
-    deleteAllObjects(sketchpadPaper);
-    Rectangles = [];
-    for(var i=0; i<rectStrokes.length; i++){
-        var r = rectangleFitter(rectStrokes[i]);
-        var c = rectangleClassification(r);
-        Rectangles.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
+    if(result.Score > 2){
+        //then replace the old recognition
+        reclassify(result.Name);
+    }
+    else if(Stroke_List[Stroke_List.length-1].type == 'scribble'){
+        scribbleOut();
+    }
+    else{
+        //its a drawover stroke!
+        if(drawover() == false){
+
+            var rectStrokes = [];
+            if(Stroke_List.length > 3){
+                rectStrokes = rectangleScore(Stroke_List);
+            }
+            rectStrokes = chooseBestRectangles(rectStrokes);
+
+            var newObjs = arrayDifferenceNoDups(rectStrokes, Rectangles);
+            var oldObjs = arrayDifferenceNoDups(Rectangles, rectStrokes);
+          
+
+            deleteListObjects(sketchpadPaper, oldObjs);
+            Rectangles = deleteAFromB(oldObjs, Rectangles);
+            for(var i=0; i<newObjs.length; i++){
+                var r = rectangleFitter(newObjs[i]);
+                var c = rectangleClassification(r);
+                Rectangles.push(new RectangleObject(r.rect, r.score, c, newObjs[i].strokes, c.color));
+            }
+        }
     }
 
     lastpath = [];
     windowMode = false;
     GLOBAL_SKETCH_ALTERED = true;
-    //console.log(exportStrokes('eqw', 'fafas2', 'zxcad', Rectangles, northAngle, 106.4));
 });
 
 $(sketchpad).mousemove(function (e) {
@@ -376,7 +403,7 @@ function drawScene(rectStrokes, strokelist, rects, paperobj){
     for(var i=0; i<rectStrokes.length; i++){
         var r = rectangleFitter(rectStrokes[i]);
         var c = rectangleClassification(r);
-        rects.push(new Rectangle(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
+        rects.push(new RectangleObject(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
     }
 }
 
@@ -428,6 +455,147 @@ function process_line(pts, windowM, clicked){
     save_line(pts, lineidcount, idname, type, clicked);
     draw_line(pts, idname, type);
     lineidcount++;
+}
+
+function deleteById(idname, idnum){
+    var obj = sketchpadPaper.getById(idname);
+    obj.remove();
+    Stroke_List[idnum].removed = true;
+
+    for(var i=0; i<Stroke_List[idnum].windows.length; i++){
+        obj = sketchpadPaper.getById(Stroke_List[Stroke_List[idnum].windows[i]].id);
+        obj.remove();
+        Stroke_List[Stroke_List[idnum].windows[i]].removed = true;
+    }
+}
+
+function deleteObjectById(idnum, rects){
+    for(var i=0; i<rects.length; i++){
+        for(var j=0; j<rects[i].strokes.length; j++){
+            if(rects[i].strokes[j] == idnum){
+                    var obj = sketchpadPaper.getById(rects[i].id);
+                    obj.remove();
+                    var lab = sketchpadPaper.getById(rects[i].labelId);
+                    lab.remove();
+                    Rectangles.splice(findIndexById(Rectangles, rects[i].id), 1);
+                    return;
+            }
+        }
+    }
+}
+
+function deleteProcess(stroke){
+    deleteById(stroke.id, stroke.idnum);
+    deleteObjectById(stroke.idnum, Rectangles);
+}
+
+function scribbleOut(){
+    if(Stroke_List[Stroke_List.length-1].type != 'scribble' )
+        return;
+    var thisStroke = Stroke_List[Stroke_List.length-1];
+    for(var i=0, j=Stroke_List.length-1; i<j; i++){
+        if(distance(thisStroke.center, Stroke_List[i].center) < 25 && Stroke_List[i].removed == false){
+            deleteProcess(Stroke_List[Stroke_List.length-1]);
+            deleteProcess(Stroke_List[i]);
+            return;
+        }
+    }
+}
+
+function distToAll(idnum){
+    var output = [];
+    for(var i=0; i<Stroke_List.length; i++){
+        if(i != idnum){
+            output.push({id:i, dist:distance(Stroke_List[i].center, Stroke_List[idnum].center),
+                length:Stroke_List[i].length, slope:Stroke_List[i].bestFitLine.slope});
+        }
+    }
+    output.sort(function(a,b){return a.dist-b.dist});
+    return output;
+}
+
+function drawover(){
+    var d = distToAll(Stroke_List.length-1);
+    var curr = Stroke_List[Stroke_List.length-1];
+    var j = 3;
+    if(Stroke_List.length < 3)
+        j = Stroke_List.length;
+    if(j == 1 || curr.type =='window' || windowMode)
+        return false;
+
+    for(var i=0 ; i<j-1; i++){
+        if(d[i].dist < 15  && withinDiff(d[i].slope, curr.bestFitLine.slope) < 4
+            && withinDiff(d[i].length, curr.length) < 100 && Stroke_List[d[i].id].removed == false
+            && Stroke_List[d[i].id].type != 'scribble'){
+            deleteProcess(Stroke_List[d[i].id]);
+            return true;
+        }
+    }
+    return false;
+}
+
+function strokesCenter(idnum){
+    var pts = [], centers = [], dists = [];
+    for(var i=0; i<Rectangles.length; i++){
+        pts.push(combineStrokes(Rectangles[i].strokes));
+    }
+    for(var i=0; i<pts.length; i++){
+        centers.push(centroid(pts[i]));
+    }
+    for(var i=0; i<centers.length; i++){
+        dists.push({dist: distance(Stroke_List[idnum].center, centers[i]), id:i});
+    }
+    dists.sort(function(a,b){return a.dist-b.dist});
+    return dists[0];
+}
+
+function distToAllRects(idnum){
+    var output = [];
+    for(var i=0; i<Rectangles.length; i++){
+        output.push({id:i, dist:distance(Stroke_List[i].center, Stroke_List[idnum].center),
+            length:Stroke_List[i].length, slope:Stroke_List[i].bestFitLine.slope});
+
+    }
+    output.sort(function(a,b){return a.dist-b.dist});
+    return output;
+}
+
+function changeThings(color, type, rect){
+    var r = rect;
+    r.color = color;
+    r.type = type;
+    r.userClassify = true;
+    var obj = sketchpadPaper.getById(r.id);
+    obj.attr({fill:color});
+    var label = sketchpadPaper.getById(r.labelId);
+    label.attr({text:type});
+}
+
+function reclassify(letter){
+    var word = "";
+
+    var closest = strokesCenter(Stroke_List.length-1);
+
+    if(Rectangles.length == 0)
+        return;
+    if(closest.dist < 100){
+        //then reclassify it
+        if(letter == 'S'){
+            changeType('skylight', 'yellow', Rectangles[closest.id].id);
+        }
+        if(letter == "B"){
+            changeType('bed', 'blue', Rectangles[closest.id].id);
+        }
+        if(letter == 'W'){
+            changeType( 'wardrobe', 'green', Rectangles[closest.id].id);
+        }
+        if(letter == "D"){
+            changeType('desk', 'red', Rectangles[closest.id].id);
+        }
+        deleteProcess(Stroke_List[Stroke_List.length-1]);
+    }
+    else
+        console.log('hi', closest.dist);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -498,6 +666,24 @@ function findById(strokeList, strokeId){
     return -1;
 }
 
+function findIndexById(list, id){
+    for(var i=0; i<list.length; i++){
+        if(list.id == id)
+            return i;
+    }
+    return -1;
+}
+
+function arraysEqual(arr1, arr2) {
+    if(arr1.length !== arr2.length)
+        return false;
+    for(var i = arr1.length; i--;) {
+        if(arr1[i] !== arr2[i])
+            return false;
+    }
+
+    return true;
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Stroke Functions
 
@@ -723,27 +909,35 @@ function onContextMenuItemSelect (menuitem, target, href, pos)
 
         switch (val)
         {
-            case 'default':
-                s.style('base', val, {duration: 0, easing: false});
+            case 'bed':
+                changeType('bed', 'blue', HOVER_OBJ_ID);
                 break;
-            case 'custom':
-                s.style('base', val, {duration: 300, easing: 'backOut'});
+            case 'desk':
+                changeType('desk', 'red', HOVER_OBJ_ID);                
+                break;
+            case 'skylight':
+                changeType('skylight', 'yellow', HOVER_OBJ_ID);               
+                break;
+            case 'wardrobe':
+                changeType('wardrobe', 'green', HOVER_OBJ_ID);               
                 break;
         }
     }
     else
     {
-        switch (s.type)
-        {
-            case 'circle':
-                s.animate({r: menuitem.attr('r')}, 800, 'bounce');
-                break;
-            case 'rect':
-                var w = menuitem.attr('w');
-                s.animate({width: w, height: w}, 800, 'bounce');
-                break;
-        }
+        
     }
+}
+
+function changeType(type, color, objId){
+    var obj = sketchpadPaper.getById(objId);
+    var rect_obj = findById(Rectangles, objId);
+    obj.attr({fill:color});
+    rect_obj.color = color;
+    rect_obj.furnType = type;
+    rect_obj.userClassify = true;
+    var labelObj = sketchpadPaper.getById(rect_obj.labelId);
+    labelObj.attr({text:type})
 }
 
 function drawQuad(x,y,h,w,angle,color,id){
@@ -763,7 +957,7 @@ function drawQuad(x,y,h,w,angle,color,id){
             x:(b.width/2)+10, y:(b.height/2)+10, width:(CANVAS_WIDTH-b.width), height:(CANVAS_HEIGHT-b.height)-20,
         },
         distance:.75,
-        drag:'self',
+        drag: false,
         scale:false,
         rotate:false,
         draw:false,
@@ -771,7 +965,6 @@ function drawQuad(x,y,h,w,angle,color,id){
     ft.attrs.rotate = angle;
     ft.id  = ftId;
     freeTransformList.push(ft);
-    // rect.drag(objectDragMove, objectDragStart, objectDragStop);
 
     $([rect.node]).contextMenu({
         menu:     'menuRect',
@@ -802,10 +995,11 @@ function moveStroke(idnum, ft, x, y){
     var s = sketchpadPaper.getById(sId);
     // console.log('before', currStroke.points[0]);
     s.remove();
-    var transPts = translatePoints(currStroke.points, x, y);
+    var transPts = translatePoints(currStroke.originalPoints, x, y);
 
-    currStroke.midpoint = {x:(currStroke.points[0].x + currStroke.points[currStroke.points.length-1].x)/2,
-                        y:(currStroke.points[0].y + currStroke.points[currStroke.points.length-1].y)/2};
+    currStroke.points = transPts;
+    currStroke.midpoint = {x:(transPts[0].x + transPts[transPts.length-1].x)/2,
+                        y:(transPts[0].y + transPts[transPts.length-1].y)/2};
     currStroke.center = centroid(currStroke.points);
     currStroke.bestFitLine = leastSquares(currStroke.points);
     currStroke.transX = x;
@@ -825,8 +1019,6 @@ function moveStroke(idnum, ft, x, y){
         drawn_line.mouseup(pathMouseUp);
     }
 
-
-
     //MOVE WINDOWS TOO
     for(var i=0; i<currStroke.windows.length; i++){
         moveStroke(currStroke.windows[i], x, y);
@@ -843,15 +1035,30 @@ function objectDragStart(){
 
 //what does the arrow do when we let go
 function objectDragStop() {
-
     var rect = findById(Rectangles, this.id);
     var ft = findById(freeTransformList, this.ftid);
+
     sumX = ft.attrs.translate.x;
     sumY = ft.attrs.translate.y;
+
+
+
     for(var i=0; i<rect.strokes.length; i++){
         moveStroke(rect.strokes[i], ft, sumX, sumY);
     }
-    moveLabel(rect.labelId, rect.rect, sumX, sumY, rect.furnType);
+    moveLabel(rect.labelId, {cx:(rect.originalRect.cx), cy:(rect.originalRect.cy), h:rect.originalRect.h,
+        w:rect.originalRect.w, angle:rect.originalRect.angle}, sumX, sumY, rect.furnType);
+
+    // moveLabel(rect.labelId, rect.rect, sumX, sumY, rect.furnType);
+
+    rect.rect.cx = rect.originalRect.cx + sumX;
+    rect.rect.cy = rect.originalRect.cy + sumY;
+
+    return;
+
+    // rect.changeX = sumX;
+    // rect.changeY = sumY;
+
 }
 
 //follow the mouse
@@ -882,7 +1089,7 @@ function drawRectangle(object, color){
 
 //given a rectangle object, draw it
 //START POINT IS CENTER
-function drawRectSimple(rect, color, id){
+function drawRect(rect, color, id){
     drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
 }
 
@@ -1124,7 +1331,7 @@ function testRecursiveScoring(strokes){
     var ce = centroid(p);
     var r = {cx:ce.x, cy:ce.y, w:10, h:10, angle:0};
     var f = iterativeScoring(p, r, 999999, 0);
-    drawRectSimple(f.rect, '#FF0000');
+    drawRect(f.rect, '#FF0000');
     return f;
 } 
 
@@ -1237,7 +1444,7 @@ function k_combinations(set, k) {
 function rectangleScore(strokes){
     var output = [];
     var kCombs = k_combinations(strokes, 4);
-    var maxAngleDiff = 15;
+    var maxAngleDiff = 25;
     var maxCornerDist = 0;
 
     for(var i=0; i<kCombs.length; i++){
@@ -1403,10 +1610,17 @@ function deleteAllObjects(sketchpadPaper){
     Object_List = [];
 }
 
+function deleteListObjects(sketchpadPaper, array){
+    for(var i=0; i<array.length; i++){
+        var o = sketchpadPaper.getById(array[i].id);
+        var label = sketchpadPaper.getById(array[i].labelId);
+        o.remove();
+        label.remove();
+        Rectangles.splice(findIndexById(Rectangles, array[i].id), 1);
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 //finds an object given a stroke ID
 function findObjectById(idnum){
@@ -1599,7 +1813,7 @@ function randomScore(pts, num){
 }
 
 function isLine(points, a, b){
-    var threshold = .95;
+    var threshold = .9;
     var dist = distance(points[a], points[b]);
     var pathDist = pathLength(points, a, b);
     if(dist/pathDist > threshold)
@@ -1609,4 +1823,50 @@ function isLine(points, a, b){
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//THE FOLLOWING PROCESS ONLY WORKS FOR DIFFERENTIATING RECTANGLES
+//ARRAYEQUALS, ACONTAINSB, ARRAYDIFFERENCENODUPS
+function arraysEqual(a, b) {
+    if (a === b)
+        return true;
+    if (a == null || b == null)
+        return false;
+    if (a.length != b.length)
+        return false;
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i])
+            return false;
+    }
+    return true;
+}
 
+//returns true is b is in array A (same points means same obj)
+function aContainsB(arr, b){
+    for(var i=0; i<arr.length; i++){
+        if(arraysEqual(arr[i].strokes, b.strokes))
+            return true;
+    }
+    return false;
+}
+
+//returns array elements that are present in BEFORE but not AFTER\
+function arrayDifferenceNoDups(before, after) {
+    var result = [];
+    for (var i = 0; i < before.length; i++) {
+        if (!aContainsB(after, before[i])) {
+            result.push(before[i]);
+        }
+    }
+    return result;
+}
+
+function deleteAFromB(a, b){
+    var output = [];
+    for(var i=0, j=b.length; i<j; i++){
+        var x = findById(a, b.id);
+        if(x == -1){
+            output.push(b[i]);
+        }
+        else{}
+    }
+    return output;
+}
