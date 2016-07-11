@@ -36,8 +36,8 @@ function buildMultiviewer(){
     scene.add(light);
 
 
-	//var models = getModelsToView();
-	var models = ['504', '514', 'fjgmwr', 'fmohhf', 'irrtir', 'kmlenc', 'ontmhz', 'qaswke', 'sumllb', 'suvnqf', 'tfcdgz', 'ukosnc', 'xdwqrh', 'xsucpj', 'yriocd'];
+	var models = getModelsToView();
+	//var models = ['504', '514', 'fjgmwr', 'fmohhf', 'irrtir', 'kmlenc', 'ontmhz', 'qaswke', 'sumllb', 'suvnqf', 'tfcdgz', 'ukosnc', 'xdwqrh', 'xsucpj', 'yriocd'];
 	//I want an equal number of rows of 5 on either side of the origin 
 	zOffset *= Math.floor((models.length / 5) / 3);
 	models.forEach(function (elm) {
