@@ -302,6 +302,8 @@ Create a new model by clicking on <img src="../pages/AcidJs.Ribbon/icons/large/n
                     <div class="bugbutton"><input type="submit" value="submit" class="buttonsize"></input></div>
                 </form>
                 <div id="successmsg">Thank you for submitting a bug report!</div>
+
+
             </div>
         </div> <!--sidecontent-->
         <div id="maincontent">

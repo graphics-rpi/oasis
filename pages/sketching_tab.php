@@ -28,8 +28,6 @@
     <meta charset="utf-8" />
     <title> OASIS </title>
 
-
-
     <!--  the main stylesheet for our ui framework -->
     <link rel="stylesheet" href="../css/main-style.css" />
     <!-- \ the main stylesheet for our ui framework -->
@@ -54,6 +52,7 @@
 
     <!-- libraries used for the sketching interface -->
     <script src="../js/lib/raphael.js"></script>
+    <script src="../js/lib/ndollar.js"></script>
     <script src="../js/lib/raphael.free_transform.js"></script>
     <script src="../js/lib/spin.min.js"></script>
     <script src="../js/objFileContents.js"></script>
@@ -94,7 +93,7 @@
     ?>
 
     <script type="html/x-acidjs-ribbon-template" id="styles_custom_tool_template">
-      <div class="my-custom-styles-tool" data-tool-name="my-custom-styles">
+      <div id = 'testingthis' class="my-custom-styles-tool" data-tool-name="my-custom-styles">
         <ul class="acidjs-ui-ribbon-tool-exclusive-buttons">
           <# for(var i=0 ; i < styles.length; i ++) { #>
             <# var style=s tyles[i]; #>
@@ -186,12 +185,43 @@
 
     <div id= "overlay" class="overlay"> </div>
 
+    <div class="modal fade in" id="chooseType" data-backdrop="static" data-keyboard="false" role="dialog"
+      tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+<!--             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button> -->
+            <h4 class="modal-title" id="myModalLabel">Choose your drawing type</h4>
+          </div>
+          <div class="modal-body">
+            <input type="button" class="sketchButton oldstyle" id="oldbutton" value="Classic">
+            <input type="button" class="sketchButton sketching" id="newbutton" value="Sketching">
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="container-parent" class="sketch_tab_parent">
       <div id="maincontent">
           <div id="container"> 
             <!--Loading virtual tabletop and models-->
             <script src="../js/sketching_ui.js"></script>
           </div><!--container-->
+          <div id="sketchpad">
+            <script src="../js/contextmenu.js"></script>
+            <script src="../js/sketchpad.js"></script>
+
+            <ul id="menuRect" class="contextMenu">
+              <li>Reclassify this Object</li>
+              <li class="separator"><a type="radio" name="type" val='bed' href="#size_64">Bed</a></li>
+              <li><a type="radio" name="type" val='desk' href="#size_100">Desk</a></li>
+              <li><a type="radio" name="type" val='skylight' href="#size_130">Skylight</a></li>
+              <li><a type="radio" name="type" val='wardrobe' href="#size_130">Wardrobe</a></li>
+            </ul>
+
+          </div> <!--container-->
       </div><!--maincontent-->
 
       <div id="sidecontent">
@@ -205,7 +235,14 @@
           <div id="dev_info"> </div>
         </div><!--title-->
 
-        <div id="feedback" class="feedback"> 
+        <div id="feedback" class="feedback">
+          <div class="dontsee">
+          <label class="switch">
+            <input id="togglecanvas" type="checkbox">
+            <div class="slider"></div>
+          </label>
+        </div>
+
           <form id="fb_sketch_form" action="../php/sketch_submit_feedback.php" method="post">
             
             <!-- TODO: Figure out what to do with model titles
@@ -450,6 +487,7 @@
 
 <script>
 
+
 $(window).bind('resize', function(e)
 {
   if (window.RT) clearTimeout(window.RT);
@@ -458,12 +496,9 @@ $(window).bind('resize', function(e)
     global_button_handler("tab-switch-sketching:" + "../pages/sketching_tab.php");
   }, 100);
 });
-
     
 // On Load Scripts ( Same for all pages )    
-$(document).ready(function()
-{
-
+$(document).ready(function() {
   // ==================================================
   // Loading in previously entered feedback
   // ==================================================
@@ -621,7 +656,6 @@ $(document).ready(function()
       }
       
       window.ribbon1.enableRibbon(); // to prevent quickly switching tabs &  losing feedback      
-
     }
   );
 
@@ -667,6 +701,22 @@ $(document).ready(function()
   {
     GLOBAL_SKETCH_ALTERED = true; // we changed something about the sketch
   });
+
+  // console.log('test1');
+  // load_model();
+  // load_sketch_sketchpad();
+  // console.log('test2');
+  // if(IS_NEW_MODEL == 0){
+  //   $('#chooseType').modal('show');
+  // }
+  // else if(IS_NEW_MODEL == 1){
+
+  // }
+  // else if(IS_NEW_MODEL == 2){
+  //     $("#container").toggle();
+  //     $("#sketchpad").toggle();
+  //     load_model();
+  // }
 
 }); // onload
 
@@ -714,4 +764,27 @@ function hide(id)
 {
   $("#" + id).hide();
 }
+
+// $("#sketchpad").hide();
+$("#sketchpad").toggle();
+$("#togglecanvas").click(function() {
+  $("#container").toggle();
+  $("#sketchpad").toggle();
+  load_model();
+});
+
+$('#oldbutton').click(function(){
+  $('#chooseType').modal('hide');
+});
+$('#newbutton').click(function(){
+  $('#chooseType').modal('hide');
+  $("#container").toggle();
+  $("#sketchpad").toggle();
+  ribbon1.disableTools(["button-straight-wall", "button-straight-window", "button-skylight",
+    "button-bed", "button-desk", "button-closet", "button-remove", "button-change-orientation"]);
+});
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+
 </script>

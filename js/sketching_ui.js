@@ -37,7 +37,7 @@ var task_form_id_array = new Array(); // A string of form ids for all task objec
 
 var freetransform_list = []; // List of all FreeTransform objects
 
-
+var IS_NEW_MODEL = 0;
 var GLOBAL_SKETCH_ALTERED = false;
 
 $("#container").mousemove(function(e)
@@ -69,7 +69,11 @@ window.onload = function()
   // Only actually render the 2d canvas if we are on the sketching tab
   if (window.location.href.split('/')[4] == 'sketching_tab.php')
   {
+    load_model();
+  }
+}
 
+function load_model(){
     // Genreates the table and bottom bar
     generate_tabletop();
 
@@ -81,8 +85,6 @@ window.onload = function()
 
     // Loads a sketch if there is one
     load_sketch_init();
-
-  }
 }
 
 // ==========================================================
@@ -884,26 +886,53 @@ function sketching_ribbon_handler(event_str)
     /* TODO: insert a check for change before we do anything */
     if( did_change_happen() )
     {
-
-      $.ajax(
-      {
-        type: "POST",
-        url: "../php/save_model_session.php",
-        data:
+      if($('#sketchpad').css('display') == 'none'){
+        $.ajax(
         {
-          title: document.getElementById('title_frm').title.value,
-          wallfile_txt: generate_wall_file(true),
-          paths_txt: generate_path_file()
-        },
-        async: false,
-        success: function()
+          type: "POST",
+          url: "../php/save_model_session.php",
+          data:
+          {
+            title: document.getElementById('title_frm').title.value,
+            wallfile_txt: generate_wall_file(true),
+            paths_txt: generate_path_file()
+          },
+          async: false,
+          success: function()
+          {
+            alert("Sucessful but not right");
+            // Call to update the model and redirect when done;
+            update_3d_model(url);
+          },
+          error: function(){
+            alert('fail 1');
+          }
+        });
+      }
+      else{
+        $.ajax(
         {
-          // alert("Save model to session");
-          // Call to update the model and redirect when done;
-          update_3d_model(url);
-        }
-      });
-
+          type: "POST",
+          url: "../php/save_model_session.php",
+          data:
+          {
+            title: document.getElementById('title_frm').title.value,
+            wallfile_txt: exportStrokes('123', 'testing1', 'ericz', Rectangles, northAngle, 106.4),
+            paths_txt: ' '
+          },
+          async: false,
+          success: function()
+          {
+            alert("Saved model to session");
+            // Call to update the model and redirect when done;
+            update_3d_model(url);
+          },
+          error:function(){
+            alert('failure');
+          }
+        });
+      }
+      
     }else{
         // no change to the model or feedback done here
         // do we need to run remesher to setup correct view path?
@@ -2777,6 +2806,7 @@ function update_3d_model(redirect_url)
 
         function()
         {
+          //aka needs to have windows to work
           if (run_remesh && hasWindows() )
           {
             // Call function once model is saved
@@ -2928,57 +2958,95 @@ function load_sketch_init()
     var stat = e.stat;
     var title = e.title;
     var paths_txt = e.paths_txt;
+    var wallfile = e.wallfile_text;
 
-
-    if (stat == "Exisiting" || stat == "New Edited")
-    {
-
-      // console.log("Loading Exisiting Model From Session");
-      load_path_file(paths_txt);
-      document.getElementById('title_frm').title.value = title;
-
-      $.ajax({
-        type: "POST",
-        url: "../php/is_developer.php",
-        async: true,
-        success: function(e)
+    if(wallfile != " "){
+      if(isJson(wallfile)){
+        IS_NEW_MODEL = 2;
+        $("#container").toggle();
+        $("#sketchpad").toggle();
+        if (stat == "Exisiting" || stat == "New Edited")
         {
-          var json = JSON.parse(e);
-          var usertype = json.data;
+          //load the strokes in
+          loadFile(wallfile);
+          document.getElementById('title_frm').title.value = title;
 
-          if(usertype == "developer"){
-
-            // put in dev tool
-            $.getJSON("../php/get_dev_info.php", {}, function(e){
-              var hashed_username = e.hashed;
-              var model_id = e.id;
-              document.getElementById('dev_info').innerHTML = '/user_output/' + hashed_username + '/model_' + model_id;
-            });
-          }
-        },
-        error: function(e){
-          console.log("Failed to determine if developer");
         }
+        else if (stat == "New")
+        {
+          document.getElementById('title_frm').title.value = get_random_name();
+          document.getElementById('dev_info').innerHTML = "New model, not saved yet";
+        }
+        else
+        {
+          // We shouldn't ever reach this
+          alert("Recived from get_session_model.php: " + stat);
+          window.location = "../pages/login_page.php";
+        }
+      }
 
-      });
+      else if (stat == "Exisiting" || stat == "New Edited")
+      {
+        IS_NEW_MODEL = 1;
+        // console.log("Loading Exisiting Model From Session");
+        load_path_file(paths_txt);
+        document.getElementById('title_frm').title.value = title;
+
+        $.ajax({
+          type: "POST",
+          url: "../php/is_developer.php",
+          async: true,
+          success: function(e)
+          {
+            var json = JSON.parse(e);
+            var usertype = json.data;
+
+            if(usertype == "developer"){
+
+              // put in dev tool
+              $.getJSON("../php/get_dev_info.php", {}, function(e){
+                var hashed_username = e.hashed;
+                var model_id = e.id;
+                document.getElementById('dev_info').innerHTML = '/user_output/' + hashed_username + '/model_' + model_id;
+              });
+            }
+          },
+          error: function(e){
+            console.log("Failed to determine if developer");
+          }
+
+        });
+
+      }
+      else if (stat == "New")
+      {
+        document.getElementById('title_frm').title.value = get_random_name();
+        // console.log("Loading New Model From With Blank Session");
+
+        document.getElementById('dev_info').innerHTML = "New model, not saved yet";
+
+      }
+      else
+      {
+        // We shouldn't ever reach this
+        alert("Recived from get_session_model.php: " + stat);
+        window.location = "../pages/login_page.php";
+      }
+    }
+    else{
 
     }
-    else if (stat == "New")
-    {
-      document.getElementById('title_frm').title.value = get_random_name();
-      // console.log("Loading New Model From With Blank Session");
-
-      document.getElementById('dev_info').innerHTML = "New model, not saved yet";
-
+  }).success(function(){
+    if(IS_NEW_MODEL == 0){
+      $('#chooseType').modal('show');
+    }
+    if(IS_NEW_MODEL == 1){
 
     }
-    else
-    {
-      // We shouldn't ever reach this
-      alert("Recived from get_session_model.php: " + stat);
-      window.location = "../pages/login_page.php";
+    if(IS_NEW_MODEL == 2){
+      // $("#container").toggle();
+      // $("#sketchpad").toggle();
     }
-
   });
 }
 

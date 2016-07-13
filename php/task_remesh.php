@@ -1,6 +1,9 @@
 <?php
 error_log("task_remesh.php: Start");
 
+ini_set('display_errors', 'On');
+error_reporting(E_ALL | E_STRICT);
+
 session_start();
 require_once('config.inc.php');          
 require_once('user.php');

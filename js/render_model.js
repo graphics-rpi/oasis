@@ -132,10 +132,6 @@ $.getJSON(
     copy_icon.setAttribute("width","10");
     copy_button.appendChild(copy_icon);
     document.getElementById("sidecontent").appendChild(copy_button);
-    
-      
-
-      
       
     if(path == null){
 

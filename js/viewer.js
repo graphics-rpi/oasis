@@ -335,19 +335,7 @@ function getUnscrambledPath(mypath){
             
             // creates the geometries from the data in the obj file aka wall
             for (var g = 0; g < geometries.length; g++) {
-                // For every face in the geo, set its color to random
-                // for (var i = 0; i < geometries[g].faces.length; i++)
-                // {
-                //   var hex = Math.random() * 0xffffff;
-                //   geometries[g].faces[i].color.setHex(hex);
-                // }
 
-                // For every geo we have, push a material file in
-                // material.push(new THREE.MeshBasicMaterial(
-                // {
-                //   vertexColors: THREE.FaceColors, // color the vertex the same as the faces
-                //   overdraw: 0.5 // removes artifacts
-                // }));
 
                 // The mesh we are going to render
                 mesh.push(new THREE.Mesh(geometries[g], image_materials[g]));
@@ -359,25 +347,10 @@ function getUnscrambledPath(mypath){
                 // mesh[g].rotation.y = 0;
                 scene.add(mesh[g]);
             }
-//            var material = new THREE.LineBasicMaterial({
-//                color: 0x0000ff
-//            });
-//            var geometry = new THREE.Geometry();
-//            for(var x = -100;x<101;x++){
-//                geometry.vertices.push(
-//                    new THREE.Vector3( 0, Math.sqrt(10000-x*x),x )
-//                );
-//            } 
-//            var line = new THREE.Line(geometry,material);
-//            scene.add(line);
-            
+
             
             renderer = new THREE.WebGLRenderer( { antialias: true });
             renderer.setSize(WIDTH, HEIGHT);
-            //renderer.setViewport(window.innerWidth/4,window.innerHeight/10,WIDTH,HEIGHT);
-            //var renderer_position = renderer.getPosition();
-            //renderer.setPosition(window.innerWidth/2, 0);
-            //renderer.setSize( window.innerWidth, window.innerHeight );
 
             container.appendChild(renderer.domElement);
 
@@ -418,7 +391,6 @@ function getUnscrambledPath(mypath){
 //                alert(path.substr(41,44));
                 if(display && path.split('/')[2] == "texture"){
 
-                  
                     document.getElementById("modelinfo").innerHTML = getModelInfo(path);
                 }
                 
@@ -427,10 +399,6 @@ function getUnscrambledPath(mypath){
                 gohome.setAttribute("href","https://oasis.cs.rpi.edu");
                 gohome.innerHTML = "Click here to make a model!";
                 document.getElementById("modelinfo").appendChild(gohome);
-                
-                
-                
-//                document.getElementById("container").appendChild(btn_group);
             }
         }
 

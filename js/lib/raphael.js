@@ -3199,7 +3199,7 @@
         while (i--) {
             dragi = drag[i];
             //DELETE_ME
-            console.log(dragi);
+            //console.log(dragi);
             dragi.el._drag = {};
             eve("raphael.drag.end." + dragi.el.id, dragi.end_scope || dragi.start_scope || dragi.move_scope || dragi.el, e);
         }
