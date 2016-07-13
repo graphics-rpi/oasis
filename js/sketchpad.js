@@ -3,6 +3,7 @@ var sketchpadPaper = new Raphael(sketchpad, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 var mousedown = false;
 var lastX, lastY, path, pathString;
+var sumX = 0, sumY = 0;
 
 var lineidcount = 0, objidcount = 0, labelcount = 0, ftcount = 0;
 var lastpath = [];
@@ -23,17 +24,6 @@ var ndollar = new NDollarRecognizer(true);
 var CANVAS_WIDTH = SKETCHP_W();
 var CANVAS_HEIGHT = SKETCHP_H();
 
-function SKETCHP_H()
-{
-  return document.getElementById('sketchpad').offsetHeight;
-}
-
-function SKETCHP_W()
-{
-  return document.getElementById('sketchpad').offsetWidth;
-}
-
-
 var ObjectTemplates = [];
 ObjectTemplates.push(new ObjectTemplate("wardrobe", ["rect", "W"]));
 ObjectTemplates.push(new ObjectTemplate("bed", ["rect", "B"]));
@@ -48,14 +38,9 @@ FurnitureTemplates.push(new FurnitureTemplate('desk','medium',85,175, 'red'));
 FurnitureTemplates.push(new FurnitureTemplate('wardrobe','small',150,200, 'green'));
 FurnitureTemplates.push(new FurnitureTemplate('wardrobe','large',200,300, 'green'));
 
-function SketchPad(canvasId, CANVAS_WIDTH, CANVAS_HEIGHT){
-    this.canvas = document.getElementById(canvasId);
-    this.sketchpadPaper = new Raphael(canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
-    this.canvasWidth = CANVAS_WIDTH;
-    this.canvasHeight = CANVAS_HEIGHT;
-    this.strokeList = [];
-    this.objectList = [];
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//OBJECT DECLARATIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function Stroke(id, idnum, pts, resampleSize, type){
     this.id = id;
@@ -111,6 +96,35 @@ function RectangleObject(rect, score, fType, strokes, color){
     Object_List.push(this.labelId);
 }
 
+//for when i ever get around to turning this into an object
+// function SketchPad(canvasId, CANVAS_WIDTH, CANVAS_HEIGHT){
+//     this.canvas = document.getElementById(canvasId);
+//     this.sketchpadPaper = new Raphael(canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
+//     this.canvasWidth = CANVAS_WIDTH;
+//     this.canvasHeight = CANVAS_HEIGHT;
+//     this.strokeList = [];
+//     this.objectList = [];
+//     this.rectangleList = [];
+
+//     this.addStroke = function(points) {
+
+//     }
+// }
+
+function SKETCHP_H()
+{
+  return document.getElementById('sketchpad').offsetHeight;
+}
+
+function SKETCHP_W()
+{
+  return document.getElementById('sketchpad').offsetWidth;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//LOADING FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function load_sketch_sketchpad()
 {
   // Froms an ajax call to the server to get data of the working model
@@ -152,18 +166,6 @@ function load_sketch_sketchpad()
   });
 }
 
-function getColorFromType(type){
-    if(type == 'bed')
-        return 'blue';
-    if(type == 'wardrobe')
-        return 'green';
-    if(type == 'skylight')
-        return 'yellow';
-    if(type == 'desk')
-        return 'red';
-    return 'error';
-}
-
 function loadFile(filetext){
 
     var sketchObject = JSON.parse(filetext);
@@ -202,6 +204,18 @@ function loadFile(filetext){
     }
 }
 
+function getColorFromType(type){
+    if(type == 'bed')
+        return 'blue';
+    if(type == 'wardrobe')
+        return 'green';
+    if(type == 'skylight')
+        return 'yellow';
+    if(type == 'desk')
+        return 'red';
+    return 'error';
+}
+
 function isJson(str) {
     try {
         JSON.parse(str);
@@ -211,6 +225,10 @@ function isJson(str) {
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//NORTH ARROW FUNCTIONALITY
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 //starting position for north Arrow
 var northAngle = 0, northX = (CANVAS_WIDTH/2), northY = 5, northWidth = 30, northHeight = 40;
 
@@ -218,7 +236,7 @@ var northArrow = sketchpadPaper.image("../images/northarrow.png", 0, 0, northWid
     .attr({cursor: "move", transform: "R" + northAngle + "T" + northX + "," + northY });
 northArrow.drag(arrowDragMove, arrowDragStart, arrowDragStop);
 
-// Set up the object for dragging
+//Setting the values in the beginning
 function arrowDragStart(){
     this.ox = northX;
     this.oy = northY;
@@ -228,7 +246,6 @@ function arrowDragStart(){
 //what does the arrow do when we let go
 function arrowDragStop() {
     northAngle = angleAwayFromCenter(CANVAS_WIDTH/2,CANVAS_WIDTH/2, northX+15, northY+20);
-    // document.getElementById('northDir').innerHTML = (northAngle+90);
     northArrow.animate({transform: "R" + northAngle + "T" + northX + "," + northY}, 350, "<>");
     northArrowClick = false;
 }
@@ -242,38 +259,9 @@ function arrowDragMove(dx, dy) {
     northArrow.attr({ transform: "R" + northAngle + "T" + northX + "," + northY });
 }
 
-//given a strokeid, return ids of the strokes that its made of
-function getStrokesFromObject(id){
-    var obj = findById(Object_List, id);
-    var strokes = [];
-    for(var i=0; i<obj.strokes.length; i++){
-        for(var j=0; j<obj.strokes[i].length; j++){
-            strokes.push(obj.strokes[i][j]);
-        }
-    }
-    for(var i=0; i<strokes.length; i++){
-        strokes[i] = Stroke_List[strokes[i]].id;
-    }
-    return strokes;
-}
-
-//for linehovers
-function hovering(e){
-    this.attr({stroke: '#FF0000'});
-}
-function hoverout(e){
-    this.animate({stroke: '#000000'});
-}
-//for windows draw over lines
-function pathMouseDown(e){
-    windowMode = true;
-    clickedOn = $(this).attr("id");
-    console.log("entering window MOde");
-}
-function pathMouseUp(e){
-    windowMode = false;
-    console.log("exiting window mode");
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//SKETCHPAD USABILITY FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 $(sketchpad).mousedown(function (e) {
     if(!northArrowClick && !HOVERING_OBJECT){
@@ -293,7 +281,6 @@ $(sketchpad).mousedown(function (e) {
         lastY = y;
     }
 });
-
 
 $(sketchpad).mouseup(function () {
     if(northArrowClick == true || HOVERING_OBJECT == true)
@@ -389,6 +376,31 @@ $(sketchpad).mouseleave(function () {
         lastpath = [];
     }
 });
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//SKETCHPAD PRIMITIVE INTERACTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function hovering(e){
+    this.attr({stroke: '#FF0000'});
+}
+function hoverout(e){
+    this.animate({stroke: '#000000'});
+}
+//for windows draw over lines
+function pathMouseDown(e){
+    windowMode = true;
+    clickedOn = $(this).attr("id");
+    console.log("entering window MOde");
+}
+function pathMouseUp(e){
+    windowMode = false;
+    console.log("exiting window mode");
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//MAIN FUNCTIONALITY
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function addStroke(points, windowM){
@@ -401,42 +413,12 @@ function addWindow(points, windowM, strokeId){
     process_line(points, windowM, strokeId);
 }
 
-function drawScene(rectStrokes, strokelist, rects, paperobj){
-    var rectStrokes = [];
-    if(strokelist.length > 3){
-        rectStrokes = rectangleScore(strokelist);
-    }
-    rectStrokes = chooseBestRectangles(rectStrokes);
-    deleteAllObjects(paperobj);
-    rects = [];
-    for(var i=0; i<rectStrokes.length; i++){
-        var r = rectangleFitter(rectStrokes[i]);
-        var c = rectangleClassification(r);
-        rects.push(new RectangleObject(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
-    }
-}
-
-function draw_line(pts, idname, type){
-    var linepath = pointsToPath(pts);
-    var drawn_line = sketchpadPaper.path(linepath);
-    drawn_line.id = idname;
-    if(type == 'window')
-        drawn_line.attr({"stroke": "#0EBFE9", "stroke-width": 5});
-    else {
-        drawn_line.attr({"stroke": "#000000", "stroke-width": 3});
-        drawn_line.mouseout(hoverout);
-        drawn_line.mouseover(hovering);
-        drawn_line.mousedown(pathMouseDown);
-        drawn_line.mouseup(pathMouseUp);
-    }
-}
-
 function save_line(pts, idnum, idname, type, clicked){
     var resizeNum = calcResize(lineLength, RESAMPLE_SIZE, RESAMPLE_LEN_PER_SEGMENT);
     Stroke_List.push(new Stroke(idname, idnum, pts, resizeNum, type));
     if(type == 'window'){
         if(isNaN(clicked) ){
-            var id = iterativeSearch(Stroke_List, clicked);
+            var id = findIndexById(Stroke_List, clicked);
             Stroke_List[id].windows.push(idnum);
         }
         else{
@@ -444,12 +426,6 @@ function save_line(pts, idnum, idname, type, clicked){
         }
         
     }
-}
-
-function isScribble(pts){
-    var corners = shortStraw(pts);
-    var pL = pathLength(pts, 0, pts.length);
-    var dist = distance(pts[0], pts[pts.length-1]);
 }
 
 function process_line(pts, windowM, clicked){
@@ -466,38 +442,6 @@ function process_line(pts, windowM, clicked){
     lineidcount++;
 }
 
-function deleteById(idname, idnum){
-    var obj = sketchpadPaper.getById(idname);
-    obj.remove();
-    Stroke_List[idnum].removed = true;
-
-    for(var i=0; i<Stroke_List[idnum].windows.length; i++){
-        obj = sketchpadPaper.getById(Stroke_List[Stroke_List[idnum].windows[i]].id);
-        obj.remove();
-        Stroke_List[Stroke_List[idnum].windows[i]].removed = true;
-    }
-}
-
-function deleteObjectById(idnum, rects){
-    for(var i=0; i<rects.length; i++){
-        for(var j=0; j<rects[i].strokes.length; j++){
-            if(rects[i].strokes[j] == idnum){
-                    var obj = sketchpadPaper.getById(rects[i].id);
-                    obj.remove();
-                    var lab = sketchpadPaper.getById(rects[i].labelId);
-                    lab.remove();
-                    Rectangles.splice(findIndexById(Rectangles, rects[i].id), 1);
-                    return;
-            }
-        }
-    }
-}
-
-function deleteProcess(stroke){
-    deleteById(stroke.id, stroke.idnum);
-    deleteObjectById(stroke.idnum, Rectangles);
-}
-
 function scribbleOut(){
     if(Stroke_List[Stroke_List.length-1].type != 'scribble' )
         return;
@@ -509,18 +453,6 @@ function scribbleOut(){
             return;
         }
     }
-}
-
-function distToAll(idnum){
-    var output = [];
-    for(var i=0; i<Stroke_List.length; i++){
-        if(i != idnum){
-            output.push({id:i, dist:distance(Stroke_List[i].center, Stroke_List[idnum].center),
-                length:Stroke_List[i].length, slope:Stroke_List[i].bestFitLine.slope});
-        }
-    }
-    output.sort(function(a,b){return a.dist-b.dist});
-    return output;
 }
 
 function drawover(){
@@ -569,17 +501,6 @@ function distToAllRects(idnum){
     return output;
 }
 
-function changeThings(color, type, rect){
-    var r = rect;
-    r.color = color;
-    r.type = type;
-    r.userClassify = true;
-    var obj = sketchpadPaper.getById(r.id);
-    obj.attr({fill:color});
-    var label = sketchpadPaper.getById(r.labelId);
-    label.attr({text:type});
-}
-
 function reclassify(letter){
     var word = "";
 
@@ -607,163 +528,115 @@ function reclassify(letter){
         console.log('hi', closest.dist);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+function findCloser(sPt, choice1, choice2){
+    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2);
+    if(d1 > d2)
+        return choice2;
+    else
+        return choice1;
+}
 
-function pointsToPath(points){
-    var linepath = "";
-    for(var i=0; i<points.length; i++){
-        if(i==0)
-            linepath = linepath + "M"+points[i].x+","+points[i].y+" ";
-        else
-            linepath = linepath + "L"+points[i].x+","+points[i].y+ " ";
+function findCloser2(sPt, ePt, choice1, choice2){
+    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2),
+        d3 = distance(ePt, choice1), d4 = distance(ePt, choice2);
+    if(d1 > d3)
+        return choice1;
+    else
+        return choice2;
+}
+
+function travelLine(slope, length, start, closeTo){
+    var px = length/Math.sqrt(1+(slope*slope));
+    var py = (slope*length)/Math.sqrt(1+(slope*slope));
+
+    var p1 = new Point(start.x+px, start.y+py);
+    var p2 = new Point(start.x-px, start.y-py);
+    
+    return findCloser(closeTo, p1, p2);
+}
+
+function findEndPoint(startPt, endPt, strokeId, length){
+    var index = findIndexById(Stroke_List, strokeId);
+    var wallStroke = Stroke_List[index];
+    var slope = wallStroke.bestFitLine.slope;
+    
+    var wallEnd = findCloser2(startPt, endPt, wallStroke.points[0], wallStroke.points[wallStroke.points.length-1]);
+    var windEnd = travelLine(slope, length, startPt, endPt);
+    var windLen = distance(startPt, endPt);
+    
+    var windSlope = (endPt.y - startPt.y)/(endPt.x - startPt.x);
+
+    if(!isFinite(windSlope))
+        windSlope = 999999;
+    if(windSlope == 0)
+        windSlope = .00001;
+
+    var a1 = Math.atan(slope);
+    var a2 = Math.atan(windSlope);
+
+    var k = withinPercent(a1, a2);
+    var j = withinDiff(a1, a2);
+
+    //window angle is too much, don't create it
+    if( k > .3 && j > .5){
+        return -1;
     }
-    return linepath;
-}
-
-function distance(p1, p2){
-    return Math.sqrt(Math.pow((p2.x-p1.x),2) + Math.pow((p2.y-p1.y),2));
-};
-
-function strokeLength(pts){
-    var sum = 0;
-    for(var i=0; i<pts.length-1; i++)
-        sum += distance(pts[i], pts[i+1]);
-    return sum;
-}
-
-function sumArray(a){
-    var sum = 0;
-    for(var i=0; i<a.length; i++){
-        sum = sum + a[i];
+    //window is too long
+    if(distance(startPt, wallEnd) < windLen){
+        var newWindEnd = travelLine(slope, wallStroke.length/20, wallEnd, startPt);
+        return newWindEnd;
     }
-    return sum;
+    else{
+        return windEnd;
+    }
 }
 
-function binarySearch(array, key) {
-    var lo = 0,
-        hi = array.length - 1,
-        mid,
-        element;
-    while (lo <= hi) {
-        mid = Math.floor((lo + hi) / 2, 10);
-        element = array[mid];
-        if (element < key) {
-            lo = mid + 1;
-        } else if (element > key) {
-            hi = mid - 1;
-        } else {
-            return mid;
+//based on what type of path it is return the correct path points
+function findPrintedPath(path, startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
+    var simplified;
+    if(windowMode) {
+        console.log('window Path');
+        var calcEnd = findEndPoint(startPoint, endPoint, clickedOn, distance(startPoint, endPoint));
+        console.log('window', startPoint, endPoint, calcEnd);
+        if(calcEnd == -1){
+            path.remove();
+            windowMode = false;
+            return -1;
+        } 
+        simplified = resamplePoints([startPoint, calcEnd], RESAMPLE_SIZE);
+    }
+    else if(shiftDown) {
+        simplified = resamplePoints([startPoint, endPoint], RESAMPLE_SIZE);
+    }
+    else {
+        if(isLine(path, 0, path.length-1)) {
+            simplified = resamplePoints([path[0], path[path.length-1]], RESAMPLE_SIZE);
+        }
+        else {
+            simplified = resamplePoints(path, RESAMPLE_SIZE);
+            //simplified = lastpath;
         }
     }
-    return -1;
+    return simplified;
 }
 
-function calcResize(length, resampleSize, lengPerSegement){
-    return Math.round(length/lengPerSegement)*resampleSize;
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//VARIOUS 'GET' FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function withinPercent(a, b){
-    return Math.min(Math.abs((Math.abs(a)-Math.abs(b)))/Math.abs(a), Math.abs((Math.abs(b)-Math.abs(a)))/Math.abs(b));
-}
-
-function findById(strokeList, strokeId){
-    for(var i=0; i<strokeList.length; i++){
-        if(strokeList[i].id == strokeId){
-            return strokeList[i];    
-        }    
-    }   
-    return -1;
-}
-
-function findIndexById(list, id){
-    for(var i=0; i<list.length; i++){
-        if(list.id == id)
-            return i;
+//given a strokeid, return ids of the strokes that its made of
+function getStrokesFromObject(id){
+    var obj = findById(Object_List, id);
+    var strokes = [];
+    for(var i=0; i<obj.strokes.length; i++){
+        for(var j=0; j<obj.strokes[i].length; j++){
+            strokes.push(obj.strokes[i][j]);
+        }
     }
-    return -1;
-}
-
-function arraysEqual(arr1, arr2) {
-    if(arr1.length !== arr2.length)
-        return false;
-    for(var i = arr1.length; i--;) {
-        if(arr1[i] !== arr2[i])
-            return false;
+    for(var i=0; i<strokes.length; i++){
+        strokes[i] = Stroke_List[strokes[i]].id;
     }
-
-    return true;
-}
-/////////////////////////////////////////////////////////////////////////////////////////////////
-// Stroke Functions
-
-//the center point of all points entered
-function centroid(points){
-    var sx=0, sy=0;
-    for(var i=0; i<points.length; i++){
-        sx = sx+points[i].x;
-        sy = sy+points[i].y;
-    }
-    var avgx = sx / points.length;
-    var avgy = sy / points.length;
-    
-    return new Point(avgx, avgy);
-}
-
-function leastSquares(pts) {
-    var x = [], y = [];
-    for(var i=0; i<pts.length; i++){
-        x.push(pts[i].x);
-        y.push(pts[i].y);
-    }
-    var lr = {};
-    var n = y.length;
-    var sum_x = 0, sum_y = 0;
-    var sum_xy = 0, sum_xx = 0;
-    var sum_yy = 0;
-     
-    for (var i = 0; i < y.length; i++) {
-        sum_x += x[i];
-        sum_y += y[i];
-        sum_xy += (x[i]*y[i]);
-        sum_xx += (x[i]*x[i]);
-        sum_yy += (y[i]*y[i]);
-    }
-    lr['slope'] = ((n*sum_xy) - (sum_x*sum_y)) / ((n*sum_xx) - (sum_x*sum_x));
-    if(!isFinite(lr['slope']))
-        lr['slope'] = 999999;
-    if(lr['slope'] == 0)
-        lr['slope'] = .00001;
-    lr['intercept'] = (sum_y - (lr.slope * sum_x))/n;
-    lr['r2'] = Math.pow( ( (n*sum_xy) - (sum_x*sum_y) ) /
-        Math.sqrt(( (n*sum_xx) - (sum_x*sum_x) ) * ( (n*sum_yy) - (sum_y*sum_y) )),2);
-    return lr;
-}
-
-//distances between the centroid and all the points
-function cdistance(points){
-    var c = centroid(points);
-    var distances = [];
-    var t;
-    for(var i=0; i<points.length; i++){
-        t = distance(points[i], c);
-        distances.push(t);
-    }
-    return distances;
-}
-
-//average distance between centroid and all points
-function avg_cdistance(distances){
-    var sum = 0;
-    for(var i=0; i<distances.length; i++){
-        sum = sum+distances[i];
-    }
-    return (sum/distances.length);
-}
-
-function lengthRatio(points, len){
-    var eucD = distance(points[0], points[points.length-1]);
-    var pathD = len;
-    return eucD/pathD;
+    return strokes;
 }
 
 //given an array of strokes return an array of all points
@@ -832,29 +705,109 @@ function binarySearchPaperId(array, key) {
     return -1;
 }
 
-//create the next id for a shape
-function createShapeId(type){
-    var id = type + '_' + objidcount;
-    objidcount++;
-    return id;
+//given an id, iteratively go through and find the element with that id
+function findById(strokeList, strokeId){
+    for(var i=0; i<strokeList.length; i++){
+        if(strokeList[i].id == strokeId){
+            return strokeList[i];    
+        }    
+    }   
+    return -1;
 }
 
-//create the next id for a shape
-function createLabelId(){
-    var id = 'label_' + labelcount;
-    labelcount++;
-    return id;
+//given an id find the idnum
+function findIndexById(list, id){
+    for(var i=0; i<list.length; i++){
+        if(list.id == id)
+            return i;
+    }
+    return -1;
 }
 
-//create the next id for a shape
-function createFTId(){
-    var id = 'ft_' + ftcount;
-    ftcount++;
-    return id;
+//finds an object given a stroke ID
+function findObjectById(idnum){
+    for(var i=0; i<Object_List.length; i++){
+        for(var j=0; j<Object_List[i].strokes.length; j++){
+            for(var k=0; k<Object_List[i].strokes[j].length; k++){
+                if(Object_List[i].strokes[j][k] == idnum){
+                    return Object_List[i];
+                }
+            }
+        }
+    }
+    return -1;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//Point Manuipulation
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//ANGLE FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function angleAwayFromCenter(cx, cy, px, py){
+    return (Math.atan2(py - cy, px - cx) * 180 / Math.PI)+90;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//STROKE FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function leastSquares(pts) {
+    var x = [], y = [];
+    for(var i=0; i<pts.length; i++){
+        x.push(pts[i].x);
+        y.push(pts[i].y);
+    }
+    var lr = {};
+    var n = y.length;
+    var sum_x = 0, sum_y = 0;
+    var sum_xy = 0, sum_xx = 0;
+    var sum_yy = 0;
+     
+    for (var i = 0; i < y.length; i++) {
+        sum_x += x[i];
+        sum_y += y[i];
+        sum_xy += (x[i]*y[i]);
+        sum_xx += (x[i]*x[i]);
+        sum_yy += (y[i]*y[i]);
+    }
+    lr['slope'] = ((n*sum_xy) - (sum_x*sum_y)) / ((n*sum_xx) - (sum_x*sum_x));
+    if(!isFinite(lr['slope']))
+        lr['slope'] = 999999;
+    if(lr['slope'] == 0)
+        lr['slope'] = .00001;
+    lr['intercept'] = (sum_y - (lr.slope * sum_x))/n;
+    lr['r2'] = Math.pow( ( (n*sum_xy) - (sum_x*sum_y) ) /
+        Math.sqrt(( (n*sum_xx) - (sum_x*sum_x) ) * ( (n*sum_yy) - (sum_y*sum_y) )),2);
+    return lr;
+}
+
+function lengthRatio(points, len){
+    var eucD = distance(points[0], points[points.length-1]);
+    var pathD = len;
+    return eucD/pathD;
+}
+
+function pointsToPath(points){
+    var linepath = "";
+    for(var i=0; i<points.length; i++){
+        if(i==0)
+            linepath = linepath + "M"+points[i].x+","+points[i].y+" ";
+        else
+            linepath = linepath + "L"+points[i].x+","+points[i].y+ " ";
+    }
+    return linepath;
+}
+
+function strokeLength(pts){
+    var sum = 0;
+    for(var i=0; i<pts.length-1; i++)
+        sum += distance(pts[i], pts[i+1]);
+    return sum;
+}
+
+function calcResize(length, resampleSize, lengPerSegement){
+    return Math.round(length/lengPerSegement)*resampleSize;
+}
 
 //combines strokes into one stroke
 function combineStrokes(idnums){
@@ -868,85 +821,416 @@ function combineStrokes(idnums){
     return stroke;
 }
 
-function angleAwayFromCenter(cx, cy, px, py){
-    return (Math.atan2(py - cy, px - cx) * 180 / Math.PI)+90;
+function isScribble(pts){
+    var corners = shortStraw(pts);
+    var pL = pathLength(pts, 0, pts.length);
+    var dist = distance(pts[0], pts[pts.length-1]);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
-//Drawing Functions
+function randomScore(pts, num){
+    var index = 0, forward = num;
+    var randomness = 0;
 
-var sketchSet = sketchpadPaper.set();
+    while(forward < pts.length){
+        randomness += (pathLength(pts, index, forward) - distance(pts[index], pts[forward]));
+        index += num;
+        forward += num;
+    }
+    return randomness/pathLength(pts, 0, pts.length-1);
+}
 
-function onContextMenuShow (target, pos)
+function PathLength(points) // length traversed by a point path
 {
-    var s = target.raphael;
+    var d = 0.0;
+    for (var i = 1; i < points.length; i++)
+        d += distance(points[i - 1], points[i]);
+    return d;
+}
 
-    switch (s.type)
+function resamplePoints(points, n)
+{
+
+    var I = PathLength(points) / (n - 1); // interval length
+    var D = 0.0;
+    var newpoints = new Array(points[0]);
+
+    for (var i = 1; i < points.length; i++)
     {
-        case 'rect':
-            var w = s.getBBox().width; // get current width (size)
-            $('#menuRect')
-                .find('a[name="size"]').removeAttr('checked')
-                    .parent().removeClass('checked')
-                    .end()
-                .end()
-                .find('a[name="size"][w="' + w + '"]').attr('checked', 'checked')
-                    .parent().addClass('checked');
-            break;
+        var d = distance(points[i - 1], points[i]);
+        if ((D + d) >= I)
+        {
+            var qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
+            var qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
+            var qxp = parseFloat(qx.toFixed(3));
+            var qyp = parseFloat(qy.toFixed(3));
+            var q = new Point(qxp, qyp);
+            newpoints[newpoints.length] = q; // append new point 'q'
+            points.splice(i, 0, q); // insert 'q' at position i in points s.t. 'q' will be the next i
+            D = 0.0;
+        }
+        else D += d;
     }
 
-    $('#menuRect, #menuCircle')
-        .find('a[name="style"]').removeAttr('checked')
-            .parent().removeClass('checked')
-            .end()
-        .end()
-        .find('a[name="style"][val="' + s.class + '"]').attr('checked', 'checked')
-            .parent().addClass('checked');
+    if (newpoints.length == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
+        newpoints[newpoints.length] = new Point(points[points.length - 1].x, points[points.length - 1].y);
+    return newpoints;
+}
+
+function pathLength(pts, a, b){
+    var sum = 0;
+    for(var i=a; i<b; i++)
+        sum += distance(pts[i], pts[i+1]);
+    return sum;
+}
+
+function isLine(points, a, b){
+    var threshold = .9;
+    var dist = distance(points[a], points[b]);
+    var pathDist = pathLength(points, a, b);
+    if(dist/pathDist > threshold)
+        return true;
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//RECTANGLE FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//create the next id for a shape
+function createShapeId(type){
+    var id = type + '_' + objidcount;
+    objidcount++;
+    return id;
 }
 
 
-// 4. Prepare context menu item onSelect handler
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//LABEL FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function onContextMenuItemSelect (menuitem, target, href, pos)
-{
-    var s = target.get(0).raphael;
+//create the next id for a shape
+function createLabelId(){
+    var id = 'label_' + labelcount;
+    labelcount++;
+    return id;
+}
+
+function drawLabel(rectangle, text, labelId){
+    var t;
+    if(typeof text === 'object')
+        t = text.name;
+    else
+        t = text;
+
+    var label = sketchpadPaper.text(rectangle.cx, rectangle.cy, t);
+    label.id = labelId;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//RECOGNITION FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    if (menuitem.attr('name') == 'type')
-    {
-        var val = menuitem.attr('val');
-
-        switch (val)
-        {
-            case 'bed':
-                changeType('bed', 'blue', HOVER_OBJ_ID);
-                break;
-            case 'desk':
-                changeType('desk', 'red', HOVER_OBJ_ID);                
-                break;
-            case 'skylight':
-                changeType('skylight', 'yellow', HOVER_OBJ_ID);               
-                break;
-            case 'wardrobe':
-                changeType('wardrobe', 'green', HOVER_OBJ_ID);               
-                break;
+//check to make sure they are all 'lines'
+//aka the length of the stroke is close to start/end distance
+function lineLengthCheck(strokes){
+    for(var i=0; i<strokes.length; i++){
+        if(strokes[i].lengthRatio < .9){
+            return false;
         }
     }
-    else
-    {
-        
+    return true;
+}
+
+//checks that all the line endings are close to at least 1 other end point
+function lineEndingsCheck(strokes){
+    var endings = [], pairs = [], found = false;
+    var maxCornerDist = 0;
+    for(var x=0; x<strokes.length; x++){
+        maxCornerDist += strokes[x].length;
+    }
+    maxCornerDist = maxCornerDist*.1;
+
+    for(var i=0; i<strokes.length; i++){
+        var s = Stroke_List[strokes[i]];
+        endings.push({point: strokes[i].points[0], id: strokes[i]});
+        endings.push({point: strokes[i].points[strokes[i].points.length-1], id: strokes[i]});
+    }
+    for(var i=0; i<endings.length-1; i++){
+        for(var j=i+1; j<endings.length; j++){
+            var b = distance(endings[i].point, endings[j].point);
+            if(b < maxCornerDist && endings[i].id != endings[j].id){
+                pairs.push({p1:endings[i], p2:endings[j], dist: b});
+                endings.splice(j,1);
+                found = true;
+            }
+            if(found == true){
+                found = false;
+                break;
+            }
+        }
+    }
+    if(pairs.length != strokes.length){
+        return [];
+    }
+    return pairs;
+}
+
+//check that the angles are close to right angles
+function lineRightAngleCheck(strokes){
+    var s = strokes.slice(0);
+    var center = centroid(strokes);
+    var output = [];
+    s.sort(function(a,b){return angleAwayFromCenter(center.x, center.y, b.midpoint.x, b.midpoint.y)
+        - angleAwayFromCenter(center.x, center.y, a.midpoint.x, a.midpoint.y);});
+    for(var i=0; i<s.length; i++){
+        var s1 = s[i].bestFitLine.slope;
+        var s2 = s[(i+1)%s.length].bestFitLine.slope;
+        output.push(Math.abs(Math.atan(Math.abs(s1-s2)/(1+(s1*s2)))* 180 / Math.PI)%90);
+    }
+    var sum = sumArray(output);
+
+    return Math.abs(90-sum/strokes.length);
+}
+
+function noWindows(strokes){
+    for(var i=0; i<strokes.length; i++){
+        if(strokes[i].windows.length != 0)
+            return false;
+        if(strokes[i].type == 'window')
+            return false;
+    }
+    return true;
+}
+
+function k_combinations(set, k) {
+    var i, j, combs, head, tailcombs;   
+    if (k > set.length || k <= 0) {
+        return [];
+    }
+    if (k == set.length) {
+        return [set];
+    }
+    if (k == 1) {
+        combs = [];
+        for (i = 0; i < set.length; i++) {
+            combs.push([set[i]]);
+        }
+        return combs;
+    }
+    combs = [];
+    for (i = 0; i < set.length - k + 1; i++) {
+        // head is a list that includes only our current element.
+        head = set.slice(i, i + 1);
+        // We take smaller combinations from the subsequent elements
+        tailcombs = k_combinations(set.slice(i + 1), k - 1);
+        // For each (k-1)-combination we join it with the current
+        // and store it to the set of k-combinations.
+        for (j = 0; j < tailcombs.length; j++) {
+            combs.push(head.concat(tailcombs[j]));
+        }
+    }
+    return combs;
+}
+
+//given a set of strokes, return the combinations of scores that meet the metrics
+//along with their scores
+function rectangleScore(strokes){
+    var output = [];
+    var kCombs = k_combinations(strokes, 4);
+    var maxAngleDiff = 25;
+    var maxCornerDist = 0;
+
+    for(var i=0; i<kCombs.length; i++){
+        for(var x=0; x<kCombs[i].length; x++){
+            maxCornerDist += kCombs[i][x].length;
+        }
+        maxCornerDist = maxCornerDist*.2;
+        //all lines are close to lines
+        var a = lineLengthCheck(kCombs[i]);
+        //all line endings are close to another line ending
+        var b = lineEndingsCheck(kCombs[i]);
+        var bsum = 0;
+        for(var j=0; j<b.length; j++)
+            bsum += b[j].dist;
+        //corners are 90 degree angles
+        //average the line endings together - is corner
+        var c = lineRightAngleCheck(kCombs[i]);
+        var d = noWindows(kCombs[i]);
+        //corner distances are close to equal
+        if(a == true && b.length == 4 && c < maxAngleDiff && d == true){
+            var k = [];
+            for(var j=0; j<kCombs[i].length; j++){
+                k.push(kCombs[i][j].idnum);
+            }
+            output.push({strokes:k, score: c/maxAngleDiff + bsum/maxCornerDist});
+            k = [];
+        }
+    }
+    return output;
+}
+
+
+//returns the furnituretemplate whose ratio matches the best
+function rectangleClassification(rectangle){
+    var r = [];
+    var rectRatio1 = rectangle.rect.h/rectangle.rect.w;
+    var rectRatio2 = rectangle.rect.w/rectangle.rect.h;
+    for(var i=0; i<FurnitureTemplates.length; i++){
+        r.push({ratio:withinPercent(rectRatio1,FurnitureTemplates[i].ratio), template:i});
+        r.push({ratio:withinPercent(rectRatio2,FurnitureTemplates[i].ratio), template:i});
+    }
+    r.sort(function(a, b){return a.ratio-b.ratio});
+    return FurnitureTemplates[r[0].template];
+}
+
+function chooseBestRectangles(scores){
+    var best = [], chosen = [], pchosen = [];
+    var chosenrect = true;
+    var s = scores, i=0;
+    s.sort(function(a,b){return a.score-b.score});
+
+    while(chosen.length < Stroke_List.length && i < s.length){
+        for(var j=0; j<s[i].strokes.length; j++){
+            var x = binarySearch(chosen, scores[i].strokes[j]);
+            if(x == -1){
+                chosen.push(s[i].strokes[j]);
+                chosen.sort(function(a,b){return a-b});
+            }
+            else{
+                chosenrect = false;
+                break;
+            }
+        }
+        if(chosenrect == false){
+            chosen = pchosen.slice(0);
+        }
+        else{
+            best.push(s[i]);
+            pchosen = chosen.slice(0);
+        }
+        i++;
+        chosenrect = true;
+    }
+    return best;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//MULTIPURPOSE FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//the center point of all points entered
+function centroid(points){
+    var sx=0, sy=0;
+    for(var i=0; i<points.length; i++){
+        sx = sx+points[i].x;
+        sy = sy+points[i].y;
+    }
+    var avgx = sx / points.length;
+    var avgy = sy / points.length;
+    
+    return new Point(avgx, avgy);
+}
+
+function distance(p1, p2){
+    return Math.sqrt(Math.pow((p2.x-p1.x),2) + Math.pow((p2.y-p1.y),2));
+}
+
+//returns the sum of all the elements in an array
+function sumArray(a){
+    var sum = 0;
+    for(var i=0; i<a.length; i++){
+        sum = sum + a[i];
+    }
+    return sum;
+}
+
+//Does not work with objects (obviously)
+function binarySearch(array, key) {
+    var lo = 0,
+        hi = array.length - 1,
+        mid,
+        element;
+    while (lo <= hi) {
+        mid = Math.floor((lo + hi) / 2, 10);
+        element = array[mid];
+        if (element < key) {
+            lo = mid + 1;
+        } else if (element > key) {
+            hi = mid - 1;
+        } else {
+            return mid;
+        }
+    }
+    return -1;
+}
+
+function withinPercent(a, b){
+    return Math.min(Math.abs((Math.abs(a)-Math.abs(b)))/Math.abs(a), Math.abs((Math.abs(b)-Math.abs(a)))/Math.abs(b));
+}
+
+function withinDiff(a,b){
+    return Math.abs(Math.abs(a)-Math.abs(b));
+}
+
+//returns true if 2 arrays contain the same contents
+function arraysEqual(arr1, arr2) {
+    if(arr1.length !== arr2.length)
+        return false;
+    for(var i = arr1.length; i--;) {
+        if(arr1[i] !== arr2[i])
+            return false;
+    }
+
+    return true;
+}
+
+//given a stroke idnum, returns the distance to all other strokes from centers
+function distToAll(idnum){
+    var output = [];
+    for(var i=0; i<Stroke_List.length; i++){
+        if(i != idnum){
+            output.push({id:i, dist:distance(Stroke_List[i].center, Stroke_List[idnum].center),
+                length:Stroke_List[i].length, slope:Stroke_List[i].bestFitLine.slope});
+        }
+    }
+    output.sort(function(a,b){return a.dist-b.dist});
+    return output;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//DRAWING FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function drawScene(rectStrokes, strokelist, rects, paperobj){
+    var rectStrokes = [];
+    if(strokelist.length > 3){
+        rectStrokes = rectangleScore(strokelist);
+    }
+    rectStrokes = chooseBestRectangles(rectStrokes);
+    deleteAllObjects(paperobj);
+    rects = [];
+    for(var i=0; i<rectStrokes.length; i++){
+        var r = rectangleFitter(rectStrokes[i]);
+        var c = rectangleClassification(r);
+        rects.push(new RectangleObject(r.rect, r.score, c, rectStrokes[i].strokes, c.color));
     }
 }
 
-function changeType(type, color, objId){
-    var obj = sketchpadPaper.getById(objId);
-    var rect_obj = findById(Rectangles, objId);
-    obj.attr({fill:color});
-    rect_obj.color = color;
-    rect_obj.furnType = type;
-    rect_obj.userClassify = true;
-    var labelObj = sketchpadPaper.getById(rect_obj.labelId);
-    labelObj.attr({text:type})
+function draw_line(pts, idname, type){
+    var linepath = pointsToPath(pts);
+    var drawn_line = sketchpadPaper.path(linepath);
+    drawn_line.id = idname;
+    if(type == 'window')
+        drawn_line.attr({"stroke": "#0EBFE9", "stroke-width": 5});
+    else {
+        drawn_line.attr({"stroke": "#000000", "stroke-width": 3});
+        drawn_line.mouseout(hoverout);
+        drawn_line.mouseover(hovering);
+        drawn_line.mousedown(pathMouseDown);
+        drawn_line.mouseup(pathMouseUp);
+    }
 }
 
 function drawQuad(x,y,h,w,angle,color,id){
@@ -984,6 +1268,31 @@ function drawQuad(x,y,h,w,angle,color,id){
     sketchSet.push(rect).style();
 }
 
+//draws a little circle at x,y, mostly for testing
+function drawMarker(x,y,color){
+    var rect = sketchpadPaper.circle(x, y, 3);
+    rect.attr({fill:color, "opacity": .5});
+    rect.toBack();
+}
+
+//given a rectangle object, draw it
+//START POINT IS CENTER
+function drawRect(rect, color, id){
+    drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
+}
+
+//create the next id for a shape
+function createFTId(){
+    var id = 'ft_' + ftcount;
+    ftcount++;
+    return id;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//MOVING PRIMITIVES FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//goes through all points and adds x,y to each of them
 function translatePoints(points, x, y){
     var output = [];
     for(var i=0; i<points.length; i++){
@@ -998,6 +1307,7 @@ function moveLabel(labelId, rect, x, y, text){
     drawLabel({cx:(rect.cx+x), cy:(rect.cy+y), h:rect.h, w:rect.w, angle:rect.angle}, text, labelId);
 }
 
+//given a stroke id, move a stroke x and y distance
 function moveStroke(idnum, ft, x, y){
     var currStroke = Stroke_List[idnum];
     var sId = currStroke.id;
@@ -1032,10 +1342,7 @@ function moveStroke(idnum, ft, x, y){
     for(var i=0; i<currStroke.windows.length; i++){
         moveStroke(currStroke.windows[i], x, y);
     }
-    
 }
-
-var sumX = 0, sumY = 0;
 
 // Set up the object for dragging
 function objectDragStart(){
@@ -1065,67 +1372,155 @@ function objectDragStop() {
 
     // rect.changeX = sumX;
     // rect.changeY = sumY;
-
 }
 
 //follow the mouse
 function objectDragMove(dx, dy) {
-    // console.log('were going');
+    //doesn't do anything while dragging...
 }
 
-function drawMarker(x,y,color){
-    var rect = sketchpadPaper.circle(x, y, 3);
-    rect.attr({fill:color, "opacity": .5});
-    rect.toBack();
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//CONTEXT MENU FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var sketchSet = sketchpadPaper.set();
+
+function onContextMenuShow (target, pos)
+{
+    var s = target.raphael;
+
+    switch (s.type)
+    {
+        case 'rect':
+            var w = s.getBBox().width; // get current width (size)
+            $('#menuRect')
+                .find('a[name="size"]').removeAttr('checked')
+                    .parent().removeClass('checked')
+                    .end()
+                .end()
+                .find('a[name="size"][w="' + w + '"]').attr('checked', 'checked')
+                    .parent().addClass('checked');
+            break;
+    }
+
+    $('#menuRect, #menuCircle')
+        .find('a[name="style"]').removeAttr('checked')
+            .parent().removeClass('checked')
+            .end()
+        .end()
+        .find('a[name="style"][val="' + s.class + '"]').attr('checked', 'checked')
+            .parent().addClass('checked');
 }
 
-function drawRectangle(object, color){
-    var corners = object.corners;
-    var center = object.center;
-    var id = object.id;
+function onContextMenuItemSelect (menuitem, target, href, pos)
+{
+    var s = target.get(0).raphael;
 
-    if(corners.length != 4)
-        return "ERROR";
 
-    var d = bestFitRect(object);
-    // var d = bestFixedSizeRect(object, 'wardrobe');
-    console.log(d);
+    if (menuitem.attr('name') == 'type')
+    {
+        var val = menuitem.attr('val');
 
-    drawQuad(d.rect.cx-(d.rect.w/2), d.rect.cy-(d.rect.h/2), d.rect.w, d.rect.h, (360-d.rect.angle), color, id);
+        switch (val)
+        {
+            case 'bed':
+                changeType('bed', 'blue', HOVER_OBJ_ID);
+                break;
+            case 'desk':
+                changeType('desk', 'red', HOVER_OBJ_ID);                
+                break;
+            case 'skylight':
+                changeType('skylight', 'yellow', HOVER_OBJ_ID);               
+                break;
+            case 'wardrobe':
+                changeType('wardrobe', 'green', HOVER_OBJ_ID);               
+                break;
+        }
+    }
+    else
+    {
+        
+    }
 }
 
-//given a rectangle object, draw it
-//START POINT IS CENTER
-function drawRect(rect, color, id){
-    drawQuad(rect.cx-(rect.w/2), rect.cy-(rect.h/2), rect.w, rect.h, (360-rect.angle), color, id);
+//changes the type (aka reclassifies), and changes everything
+function changeType(type, color, objId){
+    var obj = sketchpadPaper.getById(objId);
+    var rect_obj = findById(Rectangles, objId);
+    obj.attr({fill:color});
+    rect_obj.color = color;
+    rect_obj.furnType = type;
+    rect_obj.userClassify = true;
+    var labelObj = sketchpadPaper.getById(rect_obj.labelId);
+    labelObj.attr({text:type})
 }
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//DELETING FUNCTIONS
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function deleteById(idname, idnum){
+    var obj = sketchpadPaper.getById(idname);
+    obj.remove();
+    Stroke_List[idnum].removed = true;
+
+    for(var i=0; i<Stroke_List[idnum].windows.length; i++){
+        obj = sketchpadPaper.getById(Stroke_List[Stroke_List[idnum].windows[i]].id);
+        obj.remove();
+        Stroke_List[Stroke_List[idnum].windows[i]].removed = true;
+    }
+}
+
+function deleteObjectById(idnum, rects){
+    for(var i=0; i<rects.length; i++){
+        for(var j=0; j<rects[i].strokes.length; j++){
+            if(rects[i].strokes[j] == idnum){
+                    var obj = sketchpadPaper.getById(rects[i].id);
+                    obj.remove();
+                    var lab = sketchpadPaper.getById(rects[i].labelId);
+                    lab.remove();
+                    Rectangles.splice(findIndexById(Rectangles, rects[i].id), 1);
+                    return;
+            }
+        }
+    }
+}
+
+function deleteProcess(stroke){
+    deleteById(stroke.id, stroke.idnum);
+    deleteObjectById(stroke.idnum, Rectangles);
+}
+
+function deleteAllObjects(sketchpadPaper){
+    for(var i=0; i<Object_List.length; i++){
+        var o = sketchpadPaper.getById(Object_List[i]);
+        o.remove();
+    }
+    Object_List = [];
+}
+
+function deleteListObjects(sketchpadPaper, array){
+    for(var i=0; i<array.length; i++){
+        var o = sketchpadPaper.getById(array[i].id);
+        var label = sketchpadPaper.getById(array[i].labelId);
+        o.remove();
+        label.remove();
+        Rectangles.splice(findIndexById(Rectangles, array[i].id), 1);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+//FITTING AND SCORING FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////////////////
 
 function rectangleFitter(strokes){
     var str = getStrokesById(strokes.strokes);
     var r = bestFitRectStrokes(str);
     return r;
 }
-
-function drawRectangleStrokes(rectangle, color){
-    var r = rectangle;
-    var id = createShapeId('rect');
-    Object_List.push(id);
-    drawQuad(r.rect.cx-(r.rect.w/2), r.rect.cy-(r.rect.h/2), r.rect.w, r.rect.h, (360-r.rect.angle), color, id);
-}
-
-function drawLabel(rectangle, text, labelId){
-    var t;
-    if(typeof text === 'object')
-        t = text.name;
-    else
-        t = text;
-
-    var label = sketchpadPaper.text(rectangle.cx, rectangle.cy, t);
-    label.id = labelId;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-//Recursive Scoring
 
 //rectangle will always be axis aligned - rotate the point (it's easier)
 function rectDistance(centerx, centery, width, height, px, py) {
@@ -1266,6 +1661,7 @@ function iterativeScoring(points, rect, prevScore, inc){
     }
 }
 
+//for fixed size rectangles, if I ever get to that
 function iterativeScoringFixedSize(points, rect, prevScore, inc){
     var aInc = incrementCalc(inc,'angle'), whInc = incrementCalc(inc,'wh'), xyInc = incrementCalc(inc,'xy');
     //score the current rect
@@ -1333,207 +1729,10 @@ function bestFixedSizeRect(object, furnitureName){
     return sizeScores[bestIndex];
 }
 
-function testRecursiveScoring(strokes){
-    var p = combineStrokes(strokes);
-    var ce = centroid(p);
-    var r = {cx:ce.x, cy:ce.y, w:10, h:10, angle:0};
-    var f = iterativeScoring(p, r, 999999, 0);
-    drawRect(f.rect, '#FF0000');
-    return f;
-} 
-
 ////////////////////////////////////////////////////////////////////////////////////////////
-//Main Functionality
+//EXPORTING PRIMITIVES
+////////////////////////////////////////////////////////////////////////////////////////////
 
-
-//check to make sure they are all 'lines'
-//aka the length of the stroke is close to start/end distance
-function lineLengthCheck(strokes){
-    for(var i=0; i<strokes.length; i++){
-        if(strokes[i].lengthRatio < .9){
-            return false;
-        }
-    }
-    return true;
-}
-
-//checks that all the line endings are close to at least 1 other end point
-function lineEndingsCheck(strokes){
-    var endings = [], pairs = [], found = false;
-    var maxCornerDist = 0;
-    for(var x=0; x<strokes.length; x++){
-        maxCornerDist += strokes[x].length;
-    }
-    maxCornerDist = maxCornerDist*.1;
-
-    for(var i=0; i<strokes.length; i++){
-        var s = Stroke_List[strokes[i]];
-        endings.push({point: strokes[i].points[0], id: strokes[i]});
-        endings.push({point: strokes[i].points[strokes[i].points.length-1], id: strokes[i]});
-    }
-    for(var i=0; i<endings.length-1; i++){
-        for(var j=i+1; j<endings.length; j++){
-            var b = distance(endings[i].point, endings[j].point);
-            if(b < maxCornerDist && endings[i].id != endings[j].id){
-                pairs.push({p1:endings[i], p2:endings[j], dist: b});
-                endings.splice(j,1);
-                found = true;
-            }
-            if(found == true){
-                found = false;
-                break;
-            }
-        }
-    }
-    if(pairs.length != strokes.length){
-        return [];
-    }
-    return pairs;
-}
-
-//check that the angles are close to right angles
-function lineRightAngleCheck(strokes){
-    var s = strokes.slice(0);
-    var center = centroid(strokes);
-    var output = [];
-    s.sort(function(a,b){return angleAwayFromCenter(center.x, center.y, b.midpoint.x, b.midpoint.y)
-        - angleAwayFromCenter(center.x, center.y, a.midpoint.x, a.midpoint.y);});
-    for(var i=0; i<s.length; i++){
-        var s1 = s[i].bestFitLine.slope;
-        var s2 = s[(i+1)%s.length].bestFitLine.slope;
-        output.push(Math.abs(Math.atan(Math.abs(s1-s2)/(1+(s1*s2)))* 180 / Math.PI)%90);
-    }
-    var sum = sumArray(output);
-
-    return Math.abs(90-sum/strokes.length);
-}
-
-function noWindows(strokes){
-    for(var i=0; i<strokes.length; i++){
-        if(strokes[i].windows.length != 0)
-            return false;
-        if(strokes[i].type == 'window')
-            return false;
-    }
-    return true;
-}
-
-function k_combinations(set, k) {
-    var i, j, combs, head, tailcombs;   
-    if (k > set.length || k <= 0) {
-        return [];
-    }
-    if (k == set.length) {
-        return [set];
-    }
-    if (k == 1) {
-        combs = [];
-        for (i = 0; i < set.length; i++) {
-            combs.push([set[i]]);
-        }
-        return combs;
-    }
-    combs = [];
-    for (i = 0; i < set.length - k + 1; i++) {
-        // head is a list that includes only our current element.
-        head = set.slice(i, i + 1);
-        // We take smaller combinations from the subsequent elements
-        tailcombs = k_combinations(set.slice(i + 1), k - 1);
-        // For each (k-1)-combination we join it with the current
-        // and store it to the set of k-combinations.
-        for (j = 0; j < tailcombs.length; j++) {
-            combs.push(head.concat(tailcombs[j]));
-        }
-    }
-    return combs;
-}
-
-function rectangleScore(strokes){
-    var output = [];
-    var kCombs = k_combinations(strokes, 4);
-    var maxAngleDiff = 25;
-    var maxCornerDist = 0;
-
-    for(var i=0; i<kCombs.length; i++){
-        for(var x=0; x<kCombs[i].length; x++){
-            maxCornerDist += kCombs[i][x].length;
-        }
-        maxCornerDist = maxCornerDist*.2;
-        //all lines are close to lines
-        var a = lineLengthCheck(kCombs[i]);
-        //all line endings are close to another line ending
-        var b = lineEndingsCheck(kCombs[i]);
-        var bsum = 0;
-        for(var j=0; j<b.length; j++)
-            bsum += b[j].dist;
-        //corners are 90 degree angles
-        //average the line endings together - is corner
-        var c = lineRightAngleCheck(kCombs[i]);
-        var d = noWindows(kCombs[i]);
-        //corner distances are close to equal
-        if(a == true && b.length == 4 && c < maxAngleDiff && d == true){
-            var k = [];
-            for(var j=0; j<kCombs[i].length; j++){
-                k.push(kCombs[i][j].idnum);
-            }
-            output.push({strokes:k, score: c/maxAngleDiff + bsum/maxCornerDist});
-            k = [];
-        }
-    }
-    return output;
-}
-
-//returns the furnituretemplate whose ratio matches the best
-function rectangleClassification(rectangle){
-    var r = [];
-    var rectRatio1 = rectangle.rect.h/rectangle.rect.w;
-    var rectRatio2 = rectangle.rect.w/rectangle.rect.h;
-    for(var i=0; i<FurnitureTemplates.length; i++){
-        r.push({ratio:withinPercent(rectRatio1,FurnitureTemplates[i].ratio), template:i});
-        r.push({ratio:withinPercent(rectRatio2,FurnitureTemplates[i].ratio), template:i});
-    }
-    r.sort(function(a, b){return a.ratio-b.ratio});
-    return FurnitureTemplates[r[0].template];
-}
-
-function chooseBestRectangles(scores){
-    var best = [], chosen = [], pchosen = [];
-    var chosenrect = true;
-    var s = scores, i=0;
-    s.sort(function(a,b){return a.score-b.score});
-
-    while(chosen.length < Stroke_List.length && i < s.length){
-        for(var j=0; j<s[i].strokes.length; j++){
-            var x = binarySearch(chosen, scores[i].strokes[j]);
-            if(x == -1){
-                chosen.push(s[i].strokes[j]);
-                chosen.sort(function(a,b){return a-b});
-            }
-            else{
-                chosenrect = false;
-                break;
-            }
-        }
-        if(chosenrect == false){
-            chosen = pchosen.slice(0);
-        }
-        else{
-            best.push(s[i]);
-            pchosen = chosen.slice(0);
-        }
-        i++;
-        chosenrect = true;
-    }
-    return best;
-}
-
-function outputStrokes(){
-    var output = [];
-    for(var i=0; i<Stroke_List.length; i++){
-        output.push(Stroke_List[i].points);
-    }
-    return JSON.stringify(output);
-}
 
 //finds the coordinates of a rectangle given a rectangle object
 function rectangleCorners(rect){
@@ -1550,6 +1749,7 @@ function rectangleCorners(rect){
     return output;
 }
 
+//exports strokes to json format
 function exportStrokes(id, name, owner, rects, north, scale){
     var output = [],r = rects.slice(0);
     var str = [], pts = [], found = [];
@@ -1609,6 +1809,7 @@ function exportStrokes(id, name, owner, rects, north, scale){
     return JSON.stringify(s);
 }
 
+//tried to rewrite it but I don't think it was necessary
 function exportStrokes2(id, name, owner, strokes, rects, north, scale){
     var output = [], rec = [], r = rects.slice(0), strs = strokes.slice(0);
 
@@ -1663,226 +1864,10 @@ function exportStrokes2(id, name, owner, strokes, rects, north, scale){
     return JSON.stringify(s);
 }
 
-function deleteAllObjects(sketchpadPaper){
-    for(var i=0; i<Object_List.length; i++){
-        var o = sketchpadPaper.getById(Object_List[i]);
-        o.remove();
-    }
-    Object_List = [];
-}
+////////////////////////////////////////////////////////////////////////////////////////////
+//ARRAY DIFFERENCES
+////////////////////////////////////////////////////////////////////////////////////////////
 
-function deleteListObjects(sketchpadPaper, array){
-    for(var i=0; i<array.length; i++){
-        var o = sketchpadPaper.getById(array[i].id);
-        var label = sketchpadPaper.getById(array[i].labelId);
-        o.remove();
-        label.remove();
-        Rectangles.splice(findIndexById(Rectangles, array[i].id), 1);
-    }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//finds an object given a stroke ID
-function findObjectById(idnum){
-    for(var i=0; i<Object_List.length; i++){
-        for(var j=0; j<Object_List[i].strokes.length; j++){
-            for(var k=0; k<Object_List[i].strokes[j].length; k++){
-                if(Object_List[i].strokes[j][k] == idnum){
-                    return Object_List[i];
-                }
-            }
-        }
-    }
-    return -1;
-}
-
-function Point(x, y) // constructor
-{
-    this.x = x;
-    this.y = y;
-}
-
-function PathLength(points) // length traversed by a point path
-{
-    var d = 0.0;
-    for (var i = 1; i < points.length; i++)
-        d += distance(points[i - 1], points[i]);
-    return d;
-}
-
-function resamplePoints(points, n)
-{
-
-    var I = PathLength(points) / (n - 1); // interval length
-    var D = 0.0;
-    var newpoints = new Array(points[0]);
-
-    for (var i = 1; i < points.length; i++)
-    {
-        var d = distance(points[i - 1], points[i]);
-        if ((D + d) >= I)
-        {
-            var qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
-            var qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
-            var qxp = parseFloat(qx.toFixed(3));
-            var qyp = parseFloat(qy.toFixed(3));
-            var q = new Point(qxp, qyp);
-            newpoints[newpoints.length] = q; // append new point 'q'
-            points.splice(i, 0, q); // insert 'q' at position i in points s.t. 'q' will be the next i
-            D = 0.0;
-        }
-        else D += d;
-    }
-
-    if (newpoints.length == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
-        newpoints[newpoints.length] = new Point(points[points.length - 1].x, points[points.length - 1].y);
-    return newpoints;
-}
-
-function iterativeSearch(ds, key){
-    for(var i=0; i<ds.length; i++){
-        if(ds[i].id == key)
-            return i;
-    }
-    return -1;
-}
-
-function iterativeSearch2(ds, key){
-    for(var i=0; i<ds.length; i++){
-        if(ds[i].idnum == key)
-            return i;
-    }
-    return -1;
-}
-
-function findCloser(sPt, choice1, choice2){
-    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2);
-    if(d1 > d2)
-        return choice2;
-    else
-        return choice1;
-}
-
-function findCloser2(sPt, ePt, choice1, choice2){
-    var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2),
-        d3 = distance(ePt, choice1), d4 = distance(ePt, choice2);
-    if(d1 > d3)
-        return choice1;
-    else
-        return choice2;
-}
-
-function travelLine(slope, length, start, closeTo){
-    var px = length/Math.sqrt(1+(slope*slope));
-    var py = (slope*length)/Math.sqrt(1+(slope*slope));
-
-    var p1 = new Point(start.x+px, start.y+py);
-    var p2 = new Point(start.x-px, start.y-py);
-    
-    return findCloser(closeTo, p1, p2);
-}
-
-function withinDiff(a,b){
-    return Math.abs(Math.abs(a)-Math.abs(b));
-}
-
-function findEndPoint(startPt, endPt, strokeId, length){
-    var index = iterativeSearch(Stroke_List, strokeId);
-    var wallStroke = Stroke_List[index];
-    var slope = wallStroke.bestFitLine.slope;
-    
-    var wallEnd = findCloser2(startPt, endPt, wallStroke.points[0], wallStroke.points[wallStroke.points.length-1]);
-    var windEnd = travelLine(slope, length, startPt, endPt);
-    var windLen = distance(startPt, endPt);
-    
-    var windSlope = (endPt.y - startPt.y)/(endPt.x - startPt.x);
-
-    if(!isFinite(windSlope))
-        windSlope = 999999;
-    if(windSlope == 0)
-        windSlope = .00001;
-
-    var a1 = Math.atan(slope);
-    var a2 = Math.atan(windSlope);
-
-    var k = withinPercent(a1, a2);
-    var j = withinDiff(a1, a2);
-
-    //window angle is too much, don't create it
-    if( k > .3 && j > .5){
-        return -1;
-    }
-    //window is too long
-    if(distance(startPt, wallEnd) < windLen){
-        var newWindEnd = travelLine(slope, wallStroke.length/20, wallEnd, startPt);
-        return newWindEnd;
-    }
-    else{
-        return windEnd;
-    }
-}
-
-//based on what type of path it is return the correct path points
-function findPrintedPath(path, startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
-    var simplified;
-    if(windowMode) {
-        console.log('window Path');
-        var calcEnd = findEndPoint(startPoint, endPoint, clickedOn, distance(startPoint, endPoint));
-        console.log('window', startPoint, endPoint, calcEnd);
-        if(calcEnd == -1){
-            path.remove();
-            windowMode = false;
-            return -1;
-        } 
-        simplified = resamplePoints([startPoint, calcEnd], RESAMPLE_SIZE);
-    }
-    else if(shiftDown) {
-        simplified = resamplePoints([startPoint, endPoint], RESAMPLE_SIZE);
-    }
-    else {
-        if(isLine(path, 0, path.length-1)) {
-            simplified = resamplePoints([path[0], path[path.length-1]], RESAMPLE_SIZE);
-        }
-        else {
-            simplified = resamplePoints(path, RESAMPLE_SIZE);
-            //simplified = lastpath;
-        }
-    }
-    return simplified;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-function pathLength(pts, a, b){
-    var sum = 0;
-    for(var i=a; i<b; i++)
-        sum += distance(pts[i], pts[i+1]);
-    return sum;
-}
-
-function randomScore(pts, num){
-    var index = 0, forward = num;
-    var randomness = 0;
-
-    while(forward < pts.length){
-        randomness += (pathLength(pts, index, forward) - distance(pts[index], pts[forward]));
-        index += num;
-        forward += num;
-    }
-    return randomness/pathLength(pts, 0, pts.length-1);
-}
-
-function isLine(points, a, b){
-    var threshold = .9;
-    var dist = distance(points[a], points[b]);
-    var pathDist = pathLength(points, a, b);
-    if(dist/pathDist > threshold)
-        return true;
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //THE FOLLOWING PROCESS ONLY WORKS FOR DIFFERENTIATING RECTANGLES
 //ARRAYEQUALS, ACONTAINSB, ARRAYDIFFERENCENODUPS
