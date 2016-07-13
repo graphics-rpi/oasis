@@ -111,9 +111,6 @@ function RectangleObject(rect, score, fType, strokes, color){
     Object_List.push(this.labelId);
 }
 
-// Loads a sketch if there is one
-//load_sketch_sketchpad();
-
 function load_sketch_sketchpad()
 {
   // Froms an ajax call to the server to get data of the working model
@@ -155,6 +152,18 @@ function load_sketch_sketchpad()
   });
 }
 
+function getColorFromType(type){
+    if(type == 'bed')
+        return 'blue';
+    if(type == 'wardrobe')
+        return 'green';
+    if(type == 'skylight')
+        return 'yellow';
+    if(type == 'desk')
+        return 'red';
+    return 'error';
+}
+
 function loadFile(filetext){
 
     var sketchObject = JSON.parse(filetext);
@@ -184,7 +193,7 @@ function loadFile(filetext){
                 strokeIds.push(allStrokes[i].strokes[k].id);
             }
 
-            Rectangles.push(new RectangleObject(r, 0, allStrokes[i].type, strokeIds.slice(0), allStrokes[i].color));
+            Rectangles.push(new RectangleObject(r, 0, allStrokes[i].type, strokeIds.slice(0), getColorFromType(allStrokes[i].type)));
             strokeIds = [];
         }
         else{
@@ -306,7 +315,7 @@ $(sketchpad).mouseup(function () {
     process_line(processed, windowMode, clickedOn);
     var result = ndollar.Recognize([processed], true, false, true);
     result.Score = parseFloat(result.Score);
-    console.log(result.Name, result.Score);
+    // console.log(result.Name, result.Score);
 
     if(result.Score > 2){
         //then replace the old recognition
@@ -334,7 +343,7 @@ $(sketchpad).mouseup(function () {
             for(var i=0; i<newObjs.length; i++){
                 var r = rectangleFitter(newObjs[i]);
                 var c = rectangleClassification(r);
-                Rectangles.push(new RectangleObject(r.rect, r.score, c, newObjs[i].strokes, c.color));
+                Rectangles.push(new RectangleObject(r.rect, r.score, c.name, newObjs[i].strokes, c.color));
             }
         }
     }
@@ -1041,8 +1050,6 @@ function objectDragStop() {
     sumX = ft.attrs.translate.x;
     sumY = ft.attrs.translate.y;
 
-
-
     for(var i=0; i<rect.strokes.length; i++){
         moveStroke(rect.strokes[i], ft, sumX, sumY);
     }
@@ -1588,7 +1595,7 @@ function exportStrokes(id, name, owner, rects, north, scale){
                 var cn = rectangleCorners(rectangle.rect);
                 var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
 
-                output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
+                output.push({type:rectangle.furnType, x:rx, y:ry, height:rectangle.rect.h,
                     width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
 
                 found.push(str[x].rect);
@@ -1599,6 +1606,60 @@ function exportStrokes(id, name, owner, rects, north, scale){
     n = parseFloat(n.toFixed(4));
 
     var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output};
+    return JSON.stringify(s);
+}
+
+function exportStrokes2(id, name, owner, strokes, rects, north, scale){
+    var output = [], rec = [], r = rects.slice(0), strs = strokes.slice(0);
+
+    for(var j=0; j<r.length; j++){
+        //remove strokes from stroke list
+        for(var k=0; k<r.strokes.length; k++){
+            strs[r.strokes[k]] = null;
+        }
+        //add the rect to the items list
+        var rectangle = r[j];
+        var rx = rectangle.rect.cx-(rectangle.rect.w/2);
+        rx = parseFloat(rx.toFixed(4));
+        var ry = rectangle.rect.cy-(rectangle.rect.h/2);
+        ry = parseFloat(ry.toFixed(4));
+        var a = (rectangle.rect.angle)*(Math.PI/180);
+        a = parseFloat(a.toFixed(4));
+
+        var cn = rectangleCorners(rectangle.rect);
+        var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
+
+        output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
+            width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
+    }
+    //go through the strokes left and add them
+    for(var i=0; i<strs.length; i++){
+        if(strs[i] != null && strs.type == 'window'){
+            if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
+                pts = [curr.points[0], curr.points[curr.points.length-1]];
+            else{
+                pts = curr.points;
+            }
+            var w = [];
+            for(var j=0; j<curr.windows.length; j++){
+                var curr_win = Stroke_List[curr.windows[j]];
+                w.push({window: {start: {x:curr_win.points[0].x, y:curr_win.points[0].y},
+                    end: {x:curr_win.points[curr_win.points.length-1].x, y:curr_win.points[curr_win.points.length-1].y}}})
+            }
+            output.push({type:curr.type, points:pts, windows:w});
+        }
+    }
+    var rec_s = [];
+
+    for(var i=0; i<strokes.length; i++){
+        if(strokes.removed == false){
+            rec_s.push({type:strokes.type, idnum:strokes.idnum, points:strokes.points, windows:strokes.windows});  
+        }
+    }
+    var n = ((north+180)%360)*(Math.PI/180);
+    n = parseFloat(n.toFixed(4));
+
+    var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output, recreation:rec_s};
     return JSON.stringify(s);
 }
 
