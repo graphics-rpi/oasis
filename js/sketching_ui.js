@@ -900,7 +900,7 @@ function sketching_ribbon_handler(event_str)
           async: false,
           success: function()
           {
-            alert("Sucessful but not right");
+            //alert("Sucessful but not right");
             // Call to update the model and redirect when done;
             update_3d_model(url);
           },
@@ -923,7 +923,7 @@ function sketching_ribbon_handler(event_str)
           async: false,
           success: function()
           {
-            alert("Saved model to session");
+            //alert("Saved model to session");
             // Call to update the model and redirect when done;
             update_3d_model(url);
           },
@@ -936,7 +936,7 @@ function sketching_ribbon_handler(event_str)
     }else{
         // no change to the model or feedback done here
         // do we need to run remesher to setup correct view path?
-        if( url == "../pages/3d_tab.php" && hasWindows() ){
+        if( url == "../pages/3d_tab.php" && (hasWindows() || modelHasWindows()) ){
 
           busy_ajax("Generating 3D Model");
 
@@ -2807,7 +2807,7 @@ function update_3d_model(redirect_url)
         function()
         {
           //aka needs to have windows to work
-          if (run_remesh && hasWindows() )
+          if (run_remesh && (hasWindows() || modelHasWindows()) )
           {
             // Call function once model is saved
             busy_ajax("Generating 3D Model");
@@ -2855,7 +2855,7 @@ function update_3d_model(redirect_url)
 
         function()
         {
-          if (run_remesh && hasWindows() )
+          if (run_remesh && (hasWindows() || modelHasWindows()) )
           {
             // Call function once model is saved
             busy_ajax("Generating 3D Model");
@@ -3797,4 +3797,3 @@ function show_side_task(id)
 
   
 }
-

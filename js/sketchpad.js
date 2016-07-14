@@ -181,10 +181,17 @@ function loadFile(filetext){
                 console.log('ERROR: loadfile not enough points for line');
                 return;
             }
+            else if(pts.length > 2){
+                addStroke(pts, false);
+            }
             for(var j=0; j<allStrokes[i].windows.length; j++){
                 var p = [allStrokes[i].windows[j].start, allStrokes[i].windows[j].end];
                 addWindow(p, true, i);
             }
+        }
+        else if(allStrokes[i].type == 'scribble'){
+            var pts = allStrokes[i].points;
+            addStroke(pts, false);
         }
         else if(allStrokes[i].type == 'bed' || allStrokes[i].type == 'wardrobe' || allStrokes[i].type == 'desk'){
             var r = {cx:allStrokes[i].x+(allStrokes[i].width/2), cy:allStrokes[i].y+(allStrokes[i].height/2),
@@ -445,10 +452,10 @@ function process_line(pts, windowM, clicked){
 }
 
 function scribbleOut(){
-    if(Stroke_List[Stroke_List.length-1].type != 'scribble' )
+    if(Stroke_List[Stroke_List.length-1].type != 'scribble')
         return;
     var thisStroke = Stroke_List[Stroke_List.length-1];
-    for(var i=0, j=Stroke_List.length-1; i<j; i++){
+    for(var i=Stroke_List.length-2; i>=0; i--){
         if(distance(thisStroke.center, Stroke_List[i].center) < 25 && Stroke_List[i].removed == false){
             deleteProcess(Stroke_List[Stroke_List.length-1]);
             deleteProcess(Stroke_List[i]);
@@ -620,6 +627,14 @@ function findPrintedPath(path, startPoint, endPoint, clickedOn, windowMode, shif
         }
     }
     return simplified;
+}
+
+function modelHasWindows(){
+    for(var i=0; i<Stroke_List.length; i++){
+        if(Stroke_List[i].type == 'window')
+            return true;
+    }
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
