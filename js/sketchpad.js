@@ -182,7 +182,7 @@ function loadFile(filetext){
                 return;
             }
             for(var j=0; j<allStrokes[i].windows.length; j++){
-                var p = allStrokes[i].windows[j];
+                var p = [allStrokes[i].windows[j].start, allStrokes[i].windows[j].end];
                 addWindow(p, true, i);
             }
         }
@@ -299,38 +299,40 @@ $(sketchpad).mouseup(function () {
     var processed = findPrintedPath(lastpath, startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
     // console.log(processed.length, PathLength(lastpath));
-    process_line(processed, windowMode, clickedOn);
-    var result = ndollar.Recognize([processed], true, false, true);
-    result.Score = parseFloat(result.Score);
-    // console.log(result.Name, result.Score);
+    if(processed != -1){
+        process_line(processed, windowMode, clickedOn);
+        var result = ndollar.Recognize([processed], true, false, true);
+        result.Score = parseFloat(result.Score);
+        // console.log(result.Name, result.Score);
 
-    if(result.Score > 2){
-        //then replace the old recognition
-        reclassify(result.Name);
-    }
-    else if(Stroke_List[Stroke_List.length-1].type == 'scribble'){
-        scribbleOut();
-    }
-    else{
-        //its a drawover stroke!
-        if(drawover() == false){
+        if(result.Score > 2){
+            //then replace the old recognition
+            reclassify(result.Name);
+        }
+        else if(Stroke_List[Stroke_List.length-1].type == 'scribble'){
+            scribbleOut();
+        }
+        else{
+            //its a drawover stroke!
+            if(drawover() == false){
 
-            var rectStrokes = [];
-            if(Stroke_List.length > 3){
-                rectStrokes = rectangleScore(Stroke_List);
-            }
-            rectStrokes = chooseBestRectangles(rectStrokes);
+                var rectStrokes = [];
+                if(Stroke_List.length > 3){
+                    rectStrokes = rectangleScore(Stroke_List);
+                }
+                rectStrokes = chooseBestRectangles(rectStrokes);
 
-            var newObjs = arrayDifferenceNoDups(rectStrokes, Rectangles);
-            var oldObjs = arrayDifferenceNoDups(Rectangles, rectStrokes);
-          
+                var newObjs = arrayDifferenceNoDups(rectStrokes, Rectangles);
+                var oldObjs = arrayDifferenceNoDups(Rectangles, rectStrokes);
+              
 
-            deleteListObjects(sketchpadPaper, oldObjs);
-            Rectangles = deleteAFromB(oldObjs, Rectangles);
-            for(var i=0; i<newObjs.length; i++){
-                var r = rectangleFitter(newObjs[i]);
-                var c = rectangleClassification(r);
-                Rectangles.push(new RectangleObject(r.rect, r.score, c.name, newObjs[i].strokes, c.color));
+                deleteListObjects(sketchpadPaper, oldObjs);
+                Rectangles = deleteAFromB(oldObjs, Rectangles);
+                for(var i=0; i<newObjs.length; i++){
+                    var r = rectangleFitter(newObjs[i]);
+                    var c = rectangleClassification(r);
+                    Rectangles.push(new RectangleObject(r.rect, r.score, c.name, newObjs[i].strokes, c.color));
+                }
             }
         }
     }
@@ -392,11 +394,11 @@ function hoverout(e){
 function pathMouseDown(e){
     windowMode = true;
     clickedOn = $(this).attr("id");
-    console.log("entering window MOde");
+    //console.log("entering window MOde");
 }
 function pathMouseUp(e){
     windowMode = false;
-    console.log("exiting window mode");
+    //console.log("exiting window mode");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -595,11 +597,11 @@ function findEndPoint(startPt, endPt, strokeId, length){
 function findPrintedPath(path, startPoint, endPoint, clickedOn, windowMode, shiftDown, RESAMPLE_SIZE){
     var simplified;
     if(windowMode) {
-        console.log('window Path');
+        //console.log('window Path');
         var calcEnd = findEndPoint(startPoint, endPoint, clickedOn, distance(startPoint, endPoint));
-        console.log('window', startPoint, endPoint, calcEnd);
+        //console.log('window', startPoint, endPoint, calcEnd);
         if(calcEnd == -1){
-            path.remove();
+            //path.remove();
             windowMode = false;
             return -1;
         } 
@@ -718,7 +720,7 @@ function findById(strokeList, strokeId){
 //given an id find the idnum
 function findIndexById(list, id){
     for(var i=0; i<list.length; i++){
-        if(list.id == id)
+        if(list[i].id == id)
             return i;
     }
     return -1;
@@ -1570,7 +1572,7 @@ function recursiveScoring(points, rect, prevScore, inc){
     var output = [];
     var currScore = rectScore(points, rect);
     output.push({score: currScore, rect: rect});
-    console.log(rect.angle, rect.h, rect.w, currScore, inc);
+    //console.log(rect.angle, rect.h, rect.w, currScore, inc);
     //if its not better than prev, then stop
     if(inc > 10){
         if(currScore > prevScore)
@@ -1753,6 +1755,9 @@ function rectangleCorners(rect){
 function exportStrokes(id, name, owner, rects, north, scale){
     var output = [],r = rects.slice(0);
     var str = [], pts = [], found = [];
+
+    var coordinates = calc_long_lat(MAP_MARKER.attr('cx'), MAP_MARKER.attr('cy'), map);
+
     for(var i=0; i<r.length; i++){
         for(var j=0; j<r[i].strokes.length; j++){
             str.push({id:r[i].strokes[j], rect:i});
@@ -1773,9 +1778,17 @@ function exportStrokes(id, name, owner, rects, north, scale){
             var w = [];
             for(var j=0; j<curr.windows.length; j++){
                 var curr_win = Stroke_List[curr.windows[j]];
-                w.push([{x:curr_win.points[0].x, y:curr_win.points[0].y},
-                    {x:curr_win.points[curr_win.points.length-1].x,
-                        y:curr_win.points[curr_win.points.length-1].y,}])
+
+                var w1 = curr_win.points[0].x;
+                w1 = parseFloat(w1.toFixed(4));
+                var w2 = curr_win.points[0].y;
+                w2 = parseFloat(w2.toFixed(4));
+                var w3 = curr_win.points[curr_win.points.length-1].x;
+                w3 = parseFloat(w3.toFixed(4));
+                var w4 = curr_win.points[curr_win.points.length-1].y;
+                w4 = parseFloat(w4.toFixed(4));
+
+                w.push({start: {x:w1, y:w2}, end: {x:w3, y:w4}});
             }
             output.push({type:curr.type, points:pts, windows:w});
         }
@@ -1805,7 +1818,8 @@ function exportStrokes(id, name, owner, rects, north, scale){
     var n = ((north+180)%360)*(Math.PI/180);
     n = parseFloat(n.toFixed(4));
 
-    var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output};
+    var s = {model_id:id, model_name:name, owner:owner, north:n, northloc:{x:northX, y:northY},
+    location:{longitude:coordinates[0], latitutde:coordinates[1]}, scale:scale, items:output};
     return JSON.stringify(s);
 }
 
