@@ -470,7 +470,7 @@ function snapToWall(win)
     return win;
   }
 
-  // Snap wall nearest_wall (redraw window)
+  // Snap window to nearest_wall (redraw window)
   var pts_wall = extractPathPoints(nearest_wall);
   var slope_wall = getSlope(pts_wall[0], pts_wall[1]);
   if (slope_wall != 0)
@@ -521,10 +521,11 @@ function snapToWall(win)
     return win;
   }
   //make it so that the window cannot be so close to the edge of a wall (last 2% of a wall is always 100% wall)
-  var shortenEx = fEnd[0] + (fStart[0]-fEnd[0])*.98;
-  var shortenEy = fEnd[1] + (fStart[1]-fEnd[1])*.98;
-  var shortenSx = fStart[0] + (fEnd[0]-fStart[0])*.98;
-  var shortenSy = fStart[1] + (fEnd[1]-fStart[1])*.98;
+  var per_away = .95;
+  var shortenEx = fEnd[0] + (fStart[0]-fEnd[0])*per_away;
+  var shortenEy = fEnd[1] + (fStart[1]-fEnd[1])*per_away;
+  var shortenSx = fStart[0] + (fEnd[0]-fStart[0])*per_away;
+  var shortenSy = fStart[1] + (fEnd[1]-fStart[1])*per_away;
 
   win = paper.path(["M", shortenSx, shortenSy, "L", shortenEx, shortenEy]);
 

@@ -1780,53 +1780,55 @@ function exportStrokes(id, name, owner, rects, north, scale){
     }
     str.sort(function(a,b){return a.id-b.id});
     for(var i=0; i<Stroke_List.length; i++){
-        var x = binarySearchPaperId(str, i);
-        var curr = Stroke_List[i];
-        //this is a normal stroke
-        if(curr.type == 'window'){}
-        else if(x == -1){
-            if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
-                pts = [curr.points[0], curr.points[curr.points.length-1]];
+        if(Stroke_List[i].removed == false){
+            var x = binarySearchPaperId(str, i);
+            var curr = Stroke_List[i];
+            //this is a normal stroke
+            if(curr.type == 'window'){}
+            else if(x == -1){
+                if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
+                    pts = [curr.points[0], curr.points[curr.points.length-1]];
+                else{
+                    pts = curr.points;
+                }
+                var w = [];
+                for(var j=0; j<curr.windows.length; j++){
+                    var curr_win = Stroke_List[curr.windows[j]];
+
+                    var w1 = curr_win.points[0].x;
+                    w1 = parseFloat(w1.toFixed(4));
+                    var w2 = curr_win.points[0].y;
+                    w2 = parseFloat(w2.toFixed(4));
+                    var w3 = curr_win.points[curr_win.points.length-1].x;
+                    w3 = parseFloat(w3.toFixed(4));
+                    var w4 = curr_win.points[curr_win.points.length-1].y;
+                    w4 = parseFloat(w4.toFixed(4));
+
+                    w.push({start: {x:w1, y:w2}, end: {x:w3, y:w4}});
+                }
+                output.push({type:curr.type, points:pts, windows:w});
+            }
+
             else{
-                pts = curr.points;
-            }
-            var w = [];
-            for(var j=0; j<curr.windows.length; j++){
-                var curr_win = Stroke_List[curr.windows[j]];
+                //find if we've already added this rectangle
+                var q = binarySearch(found, str[x].rect);
+                if(q == -1){
+                    var rectangle = r[str[x].rect];
+                    var rx = rectangle.rect.cx-(rectangle.rect.w/2);
+                    rx = parseFloat(rx.toFixed(4));
+                    var ry = rectangle.rect.cy-(rectangle.rect.h/2);
+                    ry = parseFloat(ry.toFixed(4));
+                    var a = (rectangle.rect.angle)*(Math.PI/180);
+                    a = parseFloat(a.toFixed(4));
 
-                var w1 = curr_win.points[0].x;
-                w1 = parseFloat(w1.toFixed(4));
-                var w2 = curr_win.points[0].y;
-                w2 = parseFloat(w2.toFixed(4));
-                var w3 = curr_win.points[curr_win.points.length-1].x;
-                w3 = parseFloat(w3.toFixed(4));
-                var w4 = curr_win.points[curr_win.points.length-1].y;
-                w4 = parseFloat(w4.toFixed(4));
+                    var cn = rectangleCorners(rectangle.rect);
+                    var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
 
-                w.push({start: {x:w1, y:w2}, end: {x:w3, y:w4}});
-            }
-            output.push({type:curr.type, points:pts, windows:w});
-        }
+                    output.push({type:rectangle.furnType, x:rx, y:ry, height:rectangle.rect.h,
+                        width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
 
-        else{
-            //find if we've already added this rectangle
-            var q = binarySearch(found, str[x].rect);
-            if(q == -1){
-                var rectangle = r[str[x].rect];
-                var rx = rectangle.rect.cx-(rectangle.rect.w/2);
-                rx = parseFloat(rx.toFixed(4));
-                var ry = rectangle.rect.cy-(rectangle.rect.h/2);
-                ry = parseFloat(ry.toFixed(4));
-                var a = (rectangle.rect.angle)*(Math.PI/180);
-                a = parseFloat(a.toFixed(4));
-
-                var cn = rectangleCorners(rectangle.rect);
-                var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
-
-                output.push({type:rectangle.furnType, x:rx, y:ry, height:rectangle.rect.h,
-                    width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
-
-                found.push(str[x].rect);
+                    found.push(str[x].rect);
+                }
             }
         }
     }

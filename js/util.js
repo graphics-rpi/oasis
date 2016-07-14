@@ -1318,7 +1318,7 @@ function line_intersection(m_1, pt1, m_2, pt2)
   return [x, y];
 }
 
-function distance(a, b)
+function distancePts(a, b)
 {
   return Math.sqrt(Math.pow((a[0] - b[0]),2) + Math.pow((a[1] - b[1]),2));
 }
@@ -1327,8 +1327,8 @@ function distance(a, b)
 function inbetween(a, c, b)
 {
   var eps = .01;
-  var dist = distance(a,c) + distance(c,b);
-  if((dist - distance(a,b)) < eps && (dist - distance(a,b)) > (eps*-1))
+  var dist = distancePts(a,c) + distancePts(c,b);
+  if((dist - distancePts(a,b)) < eps && (dist - distancePts(a,b)) > (eps*-1))
   {
     return true;
   }
