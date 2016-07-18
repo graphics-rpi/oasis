@@ -185,14 +185,12 @@
 
     <div id= "overlay" class="overlay"> </div>
 
+    <!-- comment out this div to remove sketching functionality -->
     <div class="modal fade in" id="chooseType" data-backdrop="static" data-keyboard="false" role="dialog"
       tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-<!--             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button> -->
             <h4 class="modal-title" id="myModalLabel">Choose your drawing type</h4>
           </div>
           <div class="modal-body">

@@ -695,6 +695,43 @@ function bind_straight_wall_handlers(elt)
 // Event Handlers through Ribbon UI
 // ==========================================================
 
+function new_or_old_sketching(type, redirect_url){
+  var u = "";
+  if($('#sketchpad').css('display') == 'none'){
+    u = '../php/task_remesh.php';
+  }
+  else{
+    u = '../php/task_remesh_json.php';
+  }
+
+  $.ajax({
+    type: "POST",
+    url: u,
+    data: {
+      t_called : Math.floor( new Date().getTime() / 1000)
+    },
+    success: function(data){
+      // We put this here because of the delay in creating the model
+    // We leave the user a loading indicator and only change the page when it is ready
+      if(type == 1){
+        window.location = "../pages/3d_tab.php";
+      }
+      else if(type == 2){
+        bootbox.alert("3D model updated. Please verify before running simulations", function() {
+        window.location = "../pages/3d_tab.php";
+        });
+      }
+      else if(type == 3){
+        save_form('fb_sketch_form'); // defined in ribbon_events.js
+        window.location = redirect_url;
+      }
+    },
+    error:function(){
+      alert('failure');
+    }
+  });
+}
+
 // Function gets an event_str string that tells us which button
 // was pressed in the ribbon  UI
 function sketching_ribbon_handler(event_str)
@@ -946,29 +983,8 @@ function sketching_ribbon_handler(event_str)
         if( url == "../pages/3d_tab.php" && (hasWindows() || modelHasWindows()) ){
 
           busy_ajax("Generating 3D Model");
-          var u = "";
-          if($('#sketchpad').css('display') == 'none'){
-            u = '../php/task_remesh.php';
-          }
-          else{
-            u = '../php/task_remesh_json.php';
-          }
-
-          $.ajax({
-            type: "POST",
-            url: u,
-            data: {
-              t_called : Math.floor( new Date().getTime() / 1000)
-            },
-            success: function(data){
-              // We put this here because of the delay in creating the model
-            // We leave the user a loading indicator and only change the page when it is ready
-              window.location = "../pages/3d_tab.php";
-            },
-            error:function(){
-              alert('failure');
-            }
-          });
+          
+          new_or_old_sketching(1, '');
 
         }else{
 
@@ -1015,31 +1031,7 @@ function sketching_ribbon_handler(event_str)
           // Call function once model is saved
           busy_ajax("Generating Updated 3D Model, Please Verify Before Running Simulations");
 
-          var u = "";
-          if($('#sketchpad').css('display') == 'none'){
-            u = '../php/task_remesh.php';
-          }
-          else{
-            u = '../php/task_remesh_json.php';
-          }
-
-          $.ajax({
-            type: "POST",
-            url: u,
-            data: {
-              t_called : Math.floor( new Date().getTime() / 1000)
-            },
-            success: function(data){
-              // We put this here because of the delay in creating the model
-            // We leave the user a loading indicator and only change the page when it is ready
-              bootbox.alert("3D model updated. Please verify before running simulations", function() {
-              window.location = "../pages/3d_tab.php";
-              });
-            },
-            error:function(){
-              alert('failure');
-            }
-          });
+          new_or_old_sketching(2, '');
 
           // mindy
           // alert("Create an updated 3D generated model before starting a simulation task");
@@ -1117,32 +1109,7 @@ function sketching_ribbon_handler(event_str)
           // Call function once model is saved
           busy_ajax("Generating Updated 3D Model, Please Verify Before Running Simulations");
 
-          var u = "";
-          if($('#sketchpad').css('display') == 'none'){
-            u = '../php/task_remesh.php';
-          }
-          else{
-            u = '../php/task_remesh_json.php';
-          }
-
-          $.ajax({
-            type: "POST",
-            url: u,
-            data: {
-              t_called : Math.floor( new Date().getTime() / 1000)
-            },
-            success: function(data){
-              // We put this here because of the delay in creating the model
-            // We leave the user a loading indicator and only change the page when it is ready
-              bootbox.alert("3D model updated. Please verify before running simulations", function() {
-              window.location = "../pages/3d_tab.php";
-              });
-            },
-            error:function(){
-              alert('failure');
-            }
-          });
-
+          new_or_old_sketching(2, '');
 
           // mindy
           // alert("Create an updated 3D generated model before starting a simulation task");
@@ -1216,32 +1183,7 @@ function sketching_ribbon_handler(event_str)
           // Call function once model is saved
           busy_ajax("Generating Updated 3D Model, Please Verify Before Running Simulations");
 
-          var u = "";
-          if($('#sketchpad').css('display') == 'none'){
-            u = '../php/task_remesh.php';
-          }
-          else{
-            u = '../php/task_remesh_json.php';
-          }
-
-          $.ajax({
-            type: "POST",
-            url: u,
-            data: {
-              t_called : Math.floor( new Date().getTime() / 1000)
-            },
-            success: function(data){
-              // We put this here because of the delay in creating the model
-            // We leave the user a loading indicator and only change the page when it is ready
-              bootbox.alert("3D model updated. Please verify before running simulations", function() {
-              window.location = "../pages/3d_tab.php";
-              });
-            },
-            error:function(){
-              alert('failure');
-            }
-          });
-
+          new_or_old_sketching(2, '');
 
           // mindy
           // alert("Create an updated 3D generated model before starting a simulation task");
@@ -2863,30 +2805,7 @@ function update_3d_model(redirect_url)
             busy_ajax("Generating 3D Model");
             // console.log("Making a call to task_remesh.php");
 
-            var u = "";
-            if($('#sketchpad').css('display') == 'none'){
-              u = '../php/task_remesh.php';
-            }
-            else{
-              u = '../php/task_remesh_json.php';
-            }
-
-            $.ajax({
-              type: "POST",
-              url: u,
-              data: {
-                t_called : Math.floor( new Date().getTime() / 1000)
-              },
-              success: function(data){
-                // We put this here because of the delay in creating the model
-              // We leave the user a loading indicator and only change the page when it is ready
-                save_form('fb_sketch_form'); // defined in ribbon_events.js
-                window.location = redirect_url;
-              },
-              error:function(){
-                alert('failure');
-              }
-            });
+            new_or_old_sketching(3, redirect_url);
           }
           else{
 
@@ -2924,31 +2843,8 @@ function update_3d_model(redirect_url)
           {
             // Call function once model is saved
             busy_ajax("Generating 3D Model");
+            new_or_old_sketching(3, redirect_url);
 
-            var u = "";
-            if($('#sketchpad').css('display') == 'none'){
-              u = '../php/task_remesh.php';
-            }
-            else{
-              u = '../php/task_remesh_json.php';
-            }
-
-            $.ajax({
-              type: "POST",
-              url: u,
-              data: {
-                t_called : Math.floor( new Date().getTime() / 1000)
-              },
-              success: function(data){
-                // We put this here because of the delay in creating the model
-              // We leave the user a loading indicator and only change the page when it is ready
-                save_form('fb_sketch_form'); // defined in ribbon_events.js
-                window.location = redirect_url;
-              },
-              error:function(){
-                alert('failure');
-              }
-            });
           }else{
 
             if(run_remesh){ 

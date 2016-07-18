@@ -1,3 +1,8 @@
+//SKETCH BASED INTERFACE FOR ARCHITECTURAL DESIGN
+//BY ERIC ZHANG
+//contact ezhang2008@gmail.com for more in-depth help or questions
+
+//put the sketchpad in the 'sketchpad'
 var sketchpad = document.getElementById('sketchpad');
 var sketchpadPaper = new Raphael(sketchpad, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -5,30 +10,30 @@ var mousedown = false;
 var lastX, lastY, path, pathString;
 var sumX = 0, sumY = 0;
 
+//keeps track of the number of objects in the canvas
 var lineidcount = 0, objidcount = 0, labelcount = 0, ftcount = 0;
 var lastpath = [];
+//controls the number of points per portion of distance
 var RESAMPLE_SIZE = 24, RESAMPLE_LEN_PER_SEGMENT = 250;
 var lineLength = 0, lineMin=25;
+//maximum number of iterations for recursive calling
 var maxStackCalls = 500;
-
 var startPoint, endPoint;
+
 var shiftDown = false, windowMode = false;
 var clickedOn;
 var northArrowClick = false;
-var Rectangles = [];
-var Stroke_List = [], Object_List = [];
+
+//probably the most important arrays, contain all the info
+//on strokes, rectangles, and objects
+var Stroke_List = [], Rectangles = [], Object_List = [];
 var freeTransformList = [];
 var ndollar = new NDollarRecognizer(true);
-
 
 var CANVAS_WIDTH = SKETCHP_W();
 var CANVAS_HEIGHT = SKETCHP_H();
 
-var ObjectTemplates = [];
-ObjectTemplates.push(new ObjectTemplate("wardrobe", ["rect", "W"]));
-ObjectTemplates.push(new ObjectTemplate("bed", ["rect", "B"]));
-ObjectTemplates.push(new ObjectTemplate("desk", ["rect", "D"]));
-
+//furnituretemplates keeps track of different templates and dimensions of real world objects
 var FurnitureTemplates = [];
 FurnitureTemplates.push(new FurnitureTemplate('bed','twin',100,200,'blue'));
 FurnitureTemplates.push(new FurnitureTemplate('bed','full',138,200, 'blue'));
@@ -53,18 +58,15 @@ function Stroke(id, idnum, pts, resampleSize, type){
     this.center = centroid(pts);
     this.bestFitLine = leastSquares(this.points);
     this.lengthRatio = lengthRatio(this.points, this.length);
-
-    this.transX = 0;
-    this.transY = 0;
+    //whether or not it has been deleted
     this.removed = false;
     this.windows = [];
     this.scores = [];
+    //when the stroke moves, the points will change
     this.originalPoints = this.points;
-}
-
-function ObjectTemplate(name, primitives){
-    this.name = name;
-    this.primitives = primitives;
+    //total changes to X and Y
+    this.transX = 0;
+    this.transY = 0;
 }
 
 function FurnitureTemplate(name, size, h, w, color){
@@ -80,12 +82,14 @@ function RectangleObject(rect, score, fType, strokes, color){
     this.rect = {cx:(rect.cx), cy:(rect.cy), h:rect.h, w:rect.w, angle:rect.angle};
     this.id = createShapeId('rect');
     this.score = score;
+    //sometimes this is a furnituretemplate, sometimes it is a string.....
     this.furnType = fType;
     this.strokes = strokes;
     this.labelId = createLabelId();
     this.freeTransformId = '';
     this.color = color;
     this.userClassify = false;
+    //similar to stroke, this can move, so we keep track of original
     this.originalRect = {cx:(rect.cx), cy:(rect.cy), h:rect.h, w:rect.w, angle:rect.angle};
     this.changeX = 0;
     this.changeY = 0;
@@ -125,6 +129,7 @@ function SKETCHP_W()
 //LOADING FUNCTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//loads the sketchpad elements using data from the database
 function load_sketch_sketchpad()
 {
   // Froms an ajax call to the server to get data of the working model
@@ -137,24 +142,21 @@ function load_sketch_sketchpad()
     var title = e.title;
     var paths_txt = e.wallfile_text;
 
+    //the check used is whether or not the file contents can be parsed as valid json
     if(isJson(paths_txt)){
         IS_NEW_MODEL = 2;
         $("#container").toggle();
         $("#sketchpad").toggle();
         if (stat == "Exisiting" || stat == "New Edited")
         {
-            //load the strokes in
+        //load the strokes in
           loadFile(paths_txt);
           document.getElementById('title_frm').title.value = title;
-
         }
         else if (stat == "New")
         {
           document.getElementById('title_frm').title.value = get_random_name();
-          // console.log("Loading New Model From With Blank Session");
-
           document.getElementById('dev_info').innerHTML = "New model, not saved yet";
-
         }
         else
         {
@@ -166,6 +168,8 @@ function load_sketch_sketchpad()
   });
 }
 
+//parses the json file obtained from load_sketch_sketchpad
+//basically goes through and creates primitves based on the json object
 function loadFile(filetext){
 
     var sketchObject = JSON.parse(filetext);
@@ -174,6 +178,7 @@ function loadFile(filetext){
     for(var i=0; i<allStrokes.length; i++){
         if(allStrokes[i].type == 'linesegment'){
             var pts = allStrokes[i].points;
+            //its a straight line
             if(pts.length <= 2){
                 addStroke(pts, false);
             }
@@ -181,9 +186,11 @@ function loadFile(filetext){
                 console.log('ERROR: loadfile not enough points for line');
                 return;
             }
+            //its not a straight line
             else if(pts.length > 2){
                 addStroke(pts, false);
             }
+            //for every stroke, make the windows too
             for(var j=0; j<allStrokes[i].windows.length; j++){
                 var p = [allStrokes[i].windows[j].start, allStrokes[i].windows[j].end];
                 addWindow(p, true, i);
@@ -206,11 +213,12 @@ function loadFile(filetext){
             strokeIds = [];
         }
         else{
-
+            console.log('ERROR LOADFILE: type not recognized');
         }
     }
 }
 
+//given a furniture type, return the respective color
 function getColorFromType(type){
     if(type == 'bed')
         return 'blue';
@@ -223,6 +231,8 @@ function getColorFromType(type){
     return 'error';
 }
 
+//given a string, try to parse it as json
+//return true if it can be
 function isJson(str) {
     try {
         JSON.parse(str);
@@ -271,6 +281,7 @@ function arrowDragMove(dx, dy) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 $(sketchpad).mousedown(function (e) {
+    //only start drawing a line if we aren't hovering an object or dragging the north arrow
     if(!northArrowClick && !HOVERING_OBJECT){
         lastpath = [];
         mousedown = true;
@@ -301,40 +312,47 @@ $(sketchpad).mouseup(function () {
         windowMode = false;
         return;
     }
-    // console.log(lastpath.length);
+
     //turns path into a processable path based on windowmode, etc.
     var processed = findPrintedPath(lastpath, startPoint, endPoint, clickedOn,
         windowMode, shiftDown, RESAMPLE_SIZE);
-    // console.log(processed.length, PathLength(lastpath));
+    //if we didn't like the line (ex. window angle was bad), then don't do the following
     if(processed != -1){
+        //process the line (aka add it to stroke_list, etc.)
         process_line(processed, windowMode, clickedOn);
+        //try to recognize it as a letter
         var result = ndollar.Recognize([processed], true, false, true);
         result.Score = parseFloat(result.Score);
-        // console.log(result.Name, result.Score);
 
         if(result.Score > 2){
             //then replace the old recognition
             reclassify(result.Name);
         }
+        //if it's a scribble, see if it's going to delete anything
         else if(Stroke_List[Stroke_List.length-1].type == 'scribble'){
             scribbleOut();
         }
+        //otherwise, it's a normal stroke, attmept recognition
         else{
             //its a drawover stroke!
             if(drawover() == false){
-
                 var rectStrokes = [];
-                if(Stroke_List.length > 3){
+                //don't start recognizing right away, wait a few strokes
+                //creates the list of combinations of strokes
+                if(Stroke_List.length > 6){
                     rectStrokes = rectangleScore(Stroke_List);
                 }
+                //returns the certain rectangles that have been chosen
                 rectStrokes = chooseBestRectangles(rectStrokes);
 
+                //find out which items need to be removed, added
                 var newObjs = arrayDifferenceNoDups(rectStrokes, Rectangles);
                 var oldObjs = arrayDifferenceNoDups(Rectangles, rectStrokes);
-              
 
+                //delete them from the data structures
                 deleteListObjects(sketchpadPaper, oldObjs);
                 Rectangles = deleteAFromB(oldObjs, Rectangles);
+                //for each new object, create it
                 for(var i=0; i<newObjs.length; i++){
                     var r = rectangleFitter(newObjs[i]);
                     var c = rectangleClassification(r);
@@ -344,6 +362,7 @@ $(sketchpad).mouseup(function () {
         }
     }
 
+    //reset
     lastpath = [];
     windowMode = false;
     GLOBAL_SKETCH_ALTERED = true;
@@ -362,8 +381,8 @@ $(sketchpad).mousemove(function (e) {
     endPoint = new Point(x,y);
     lineLength += distance(new Point(lastX, lastY), new Point(x,y));
 
-    // straight line mode
-    if(shiftDown||windowMode){
+    //if we're creating a window, keep the line straight
+    if(windowMode){
         var newPathString = pointsToPath([startPoint, new Point(x, y)]);
         path.attr('path', newPathString);
         if(windowMode){
@@ -380,6 +399,7 @@ $(sketchpad).mousemove(function (e) {
 });
 
 $(sketchpad).mouseleave(function () {
+    //just end the stroke if we leave the canvas
     if(lastpath.length > 0 && path != null){
         path.remove();
         lastpath = [];
@@ -391,21 +411,20 @@ $(sketchpad).mouseleave(function () {
 //SKETCHPAD PRIMITIVE INTERACTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//change colors when hovering a stroke
 function hovering(e){
     this.attr({stroke: '#FF0000'});
 }
 function hoverout(e){
     this.animate({stroke: '#000000'});
 }
-//for windows draw over lines
+//for windows, detect if we are trying to create a window
 function pathMouseDown(e){
     windowMode = true;
     clickedOn = $(this).attr("id");
-    //console.log("entering window MOde");
 }
 function pathMouseUp(e){
     windowMode = false;
-    //console.log("exiting window mode");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -437,6 +456,7 @@ function save_line(pts, idnum, idname, type, clicked){
     }
 }
 
+//identifies the line, saves it, and draws it
 function process_line(pts, windowM, clicked){
     var idname, type;
     if(windowM == true)
@@ -451,6 +471,8 @@ function process_line(pts, windowM, clicked){
     lineidcount++;
 }
 
+//goes through all the other strokes, checks for distances
+//if it is close enough, then delete it
 function scribbleOut(){
     if(Stroke_List[Stroke_List.length-1].type != 'scribble')
         return;
@@ -464,6 +486,8 @@ function scribbleOut(){
     }
 }
 
+//checks against all other strokes, checks for distance and slope
+//if they are close enough, delete the previous one
 function drawover(){
     var d = distToAll(Stroke_List.length-1);
     var curr = Stroke_List[Stroke_List.length-1];
@@ -484,6 +508,7 @@ function drawover(){
     return false;
 }
 
+//given an idnum of a stroke, return the other stroke that is closest
 function strokesCenter(idnum){
     var pts = [], centers = [], dists = [];
     for(var i=0; i<Rectangles.length; i++){
@@ -499,6 +524,7 @@ function strokesCenter(idnum){
     return dists[0];
 }
 
+//returns the distance to all other strokes
 function distToAllRects(idnum){
     var output = [];
     for(var i=0; i<Rectangles.length; i++){
@@ -510,6 +536,7 @@ function distToAllRects(idnum){
     return output;
 }
 
+//reclassifies a rectangle as another furniture item
 function reclassify(letter){
     var word = "";
 
@@ -537,6 +564,7 @@ function reclassify(letter){
         console.log('hi', closest.dist);
 }
 
+//returns choice1 or choice2, based on which one is closer to spt
 function findCloser(sPt, choice1, choice2){
     var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2);
     if(d1 > d2)
@@ -545,6 +573,7 @@ function findCloser(sPt, choice1, choice2){
         return choice1;
 }
 
+//returns c1 or c2, based on which one is closer to an end point (start or end)
 function findCloser2(sPt, ePt, choice1, choice2){
     var d1 = distance(sPt, choice1), d2 = distance(sPt, choice2),
         d3 = distance(ePt, choice1), d4 = distance(ePt, choice2);
@@ -554,6 +583,8 @@ function findCloser2(sPt, ePt, choice1, choice2){
         return choice2;
 }
 
+//following the line of best fit and the satrt point, add and subtract to find the
+//two possible end points. choose the one closer to the end point created by user 
 function travelLine(slope, length, start, closeTo){
     var px = length/Math.sqrt(1+(slope*slope));
     var py = (slope*length)/Math.sqrt(1+(slope*slope));
@@ -564,6 +595,7 @@ function travelLine(slope, length, start, closeTo){
     return findCloser(closeTo, p1, p2);
 }
 
+//basically window snapping logic
 function findEndPoint(startPt, endPt, strokeId, length){
     var index = findIndexById(Stroke_List, strokeId);
     var wallStroke = Stroke_List[index];
@@ -629,6 +661,7 @@ function findPrintedPath(path, startPoint, endPoint, clickedOn, windowMode, shif
     return simplified;
 }
 
+//returns true if the model contains windows
 function modelHasWindows(){
     for(var i=0; i<Stroke_List.length; i++){
         if(Stroke_List[i].type == 'window')
@@ -760,6 +793,7 @@ function findObjectById(idnum){
 //ANGLE FUNCTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//returns the angle from the center, used for north arrow
 function angleAwayFromCenter(cx, cy, px, py){
     return (Math.atan2(py - cy, px - cx) * 180 / Math.PI)+90;
 }
@@ -768,6 +802,8 @@ function angleAwayFromCenter(cx, cy, px, py){
 //STROKE FUNCTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//given a set of points, return the slop, intercept, and r2 of that set of points
+//least squares to find min distance to line
 function leastSquares(pts) {
     var x = [], y = [];
     for(var i=0; i<pts.length; i++){
@@ -798,12 +834,14 @@ function leastSquares(pts) {
     return lr;
 }
 
+//ratio of euclidian distance from first point to last point over the pathdistance
 function lengthRatio(points, len){
     var eucD = distance(points[0], points[points.length-1]);
     var pathD = len;
     return eucD/pathD;
 }
 
+//turns a set of points to a raphaeljs path
 function pointsToPath(points){
     var linepath = "";
     for(var i=0; i<points.length; i++){
@@ -815,6 +853,7 @@ function pointsToPath(points){
     return linepath;
 }
 
+//path length, sum of distances between consecutive points
 function strokeLength(pts){
     var sum = 0;
     for(var i=0; i<pts.length-1; i++)
@@ -822,6 +861,7 @@ function strokeLength(pts){
     return sum;
 }
 
+//calculate the resize length based on the length of the line
 function calcResize(length, resampleSize, lengPerSegement){
     return Math.round(length/lengPerSegement)*resampleSize;
 }
@@ -844,6 +884,7 @@ function isScribble(pts){
     var dist = distance(pts[0], pts[pts.length-1]);
 }
 
+//how 'random' a line is
 function randomScore(pts, num){
     var index = 0, forward = num;
     var randomness = 0;
@@ -864,9 +905,9 @@ function PathLength(points) // length traversed by a point path
     return d;
 }
 
+//resamples points to equidistant points
 function resamplePoints(points, n)
 {
-
     var I = PathLength(points) / (n - 1); // interval length
     var D = 0.0;
     var newpoints = new Array(points[0]);
@@ -893,6 +934,7 @@ function resamplePoints(points, n)
     return newpoints;
 }
 
+//pathlength between point indicies a and b
 function pathLength(pts, a, b){
     var sum = 0;
     for(var i=a; i<b; i++)
@@ -900,6 +942,7 @@ function pathLength(pts, a, b){
     return sum;
 }
 
+//determines whether a segement a to b is a line
 function isLine(points, a, b){
     var threshold = .9;
     var dist = distance(points[a], points[b]);
@@ -1235,6 +1278,7 @@ function drawScene(rectStrokes, strokelist, rects, paperobj){
     }
 }
 
+//draws the line on the canvas based on the type
 function draw_line(pts, idname, type){
     var linepath = pointsToPath(pts);
     var drawn_line = sketchpadPaper.path(linepath);
@@ -1250,6 +1294,8 @@ function draw_line(pts, idname, type){
     }
 }
 
+//draws a quad sided primitve
+//also handles the hovering, context menu, and dragging.
 function drawQuad(x,y,h,w,angle,color,id){
     var rect = sketchpadPaper.rect(x, y, h, w);
     rect.rotate(angle);
@@ -1474,7 +1520,6 @@ function changeType(type, color, objId){
 }
 
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //DELETING FUNCTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1565,6 +1610,7 @@ function rectScore(points, rect){
     return sum;
 }
 
+//rotates a point based on an angle relative to the center
 function rotatePt(pX, pY, cX, cY, angle) {
     angle = angle * Math.PI/180.0;
     return {
@@ -1572,7 +1618,7 @@ function rotatePt(pX, pY, cX, cY, angle) {
         y: (Math.sin(angle) * (pX-cX)) + (Math.cos(angle) * (pY-cY)) + cY
     };
 }
-
+//same as rotatept, but does it for a set of points
 function rotateSet(points, center, angle){
     var p = [];
     for(var i=0; i<points.length; i++){
@@ -1581,13 +1627,13 @@ function rotateSet(points, center, angle){
     return p;
 }
 
+//the scoring algorithm to find a fitted rectangle
 function recursiveScoring(points, rect, prevScore, inc){
     var increment = 20, inc2 = 30;
     //score the current rect
     var output = [];
     var currScore = rectScore(points, rect);
     output.push({score: currScore, rect: rect});
-    //console.log(rect.angle, rect.h, rect.w, currScore, inc);
     //if its not better than prev, then stop
     if(inc > 10){
         if(currScore > prevScore)
@@ -1625,6 +1671,7 @@ function recursiveScoring(points, rect, prevScore, inc){
     }
 }
 
+//calculate the increment size based on the increment number
 function incrementCalc(inc, type){
     if(inc == 0)
         inc = 1;
@@ -1709,13 +1756,7 @@ function iterativeScoringFixedSize(points, rect, prevScore, inc){
     }
 }
 
-function bestFitRect(object){
-    var firstTry = {cx:object.center.x, cy:object.center.y, w:10, h:10, angle:0};
-    var pts = object.simplifiedPoints;
-    var out1 = iterativeScoring(pts, firstTry, 999999, 0);
-    return out1;
-}
-
+//given a set of strokes, return the best fit rectangle
 function bestFitRectStrokes(strokes){
     var pts = getAllPoints(strokes);
     var cent = centroid(pts);
@@ -1723,7 +1764,7 @@ function bestFitRectStrokes(strokes){
     var out1 = iterativeScoring(pts, firstTry, 999999, 0);
     return out1;
 }
-
+//given a set of strokes, return the best fit rectangle, for fixed size furniture, which I never got to
 function bestFixedSizeRect(object, furnitureName){
     var furns = [], sizeScores = [], bestScore = 9999999, bestIndex = 0;
     for(var i=0; i<FurnitureTemplates.length; i++){
@@ -1750,9 +1791,9 @@ function bestFixedSizeRect(object, furnitureName){
 //EXPORTING PRIMITIVES
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-
 //finds the coordinates of a rectangle given a rectangle object
 function rectangleCorners(rect){
+    //basically used to calculate the corners, add/subtrace x/y
     var t = [-1,-1, 1,-1, 1,1, -1,1];
     var output = [];
     for(var i=0; i<4; i++){
@@ -1770,9 +1811,10 @@ function rectangleCorners(rect){
 function exportStrokes(id, name, owner, rects, north, scale){
     var output = [],r = rects.slice(0);
     var str = [], pts = [], found = [];
-
+    //coordinates from the map
     var coordinates = calc_long_lat(MAP_MARKER.attr('cx'), MAP_MARKER.attr('cy'), map);
 
+    //save the rectangles
     for(var i=0; i<r.length; i++){
         for(var j=0; j<r[i].strokes.length; j++){
             str.push({id:r[i].strokes[j], rect:i});
@@ -1813,6 +1855,7 @@ function exportStrokes(id, name, owner, rects, north, scale){
                 //find if we've already added this rectangle
                 var q = binarySearch(found, str[x].rect);
                 if(q == -1){
+                    //get the corner of the rectangles and its angle in radians
                     var rectangle = r[str[x].rect];
                     var rx = rectangle.rect.cx-(rectangle.rect.w/2);
                     rx = parseFloat(rx.toFixed(4));
@@ -1837,61 +1880,6 @@ function exportStrokes(id, name, owner, rects, north, scale){
 
     var s = {model_id:id, model_name:name, owner:owner, north:n, northloc:{x:northX, y:northY},
     location:{longitude:coordinates[0], latitutde:coordinates[1]}, scale:scale, items:output};
-    return JSON.stringify(s);
-}
-
-//tried to rewrite it but I don't think it was necessary
-function exportStrokes2(id, name, owner, strokes, rects, north, scale){
-    var output = [], rec = [], r = rects.slice(0), strs = strokes.slice(0);
-
-    for(var j=0; j<r.length; j++){
-        //remove strokes from stroke list
-        for(var k=0; k<r.strokes.length; k++){
-            strs[r.strokes[k]] = null;
-        }
-        //add the rect to the items list
-        var rectangle = r[j];
-        var rx = rectangle.rect.cx-(rectangle.rect.w/2);
-        rx = parseFloat(rx.toFixed(4));
-        var ry = rectangle.rect.cy-(rectangle.rect.h/2);
-        ry = parseFloat(ry.toFixed(4));
-        var a = (rectangle.rect.angle)*(Math.PI/180);
-        a = parseFloat(a.toFixed(4));
-
-        var cn = rectangleCorners(rectangle.rect);
-        var st = getAllPointsSeparate(getStrokesById(rectangle.strokes));
-
-        output.push({type:rectangle.furnType.name, x:rx, y:ry, height:rectangle.rect.h,
-            width:rectangle.rect.w, angle:a, color:rectangle.furnType.color ,corners:cn , strokes:st});
-    }
-    //go through the strokes left and add them
-    for(var i=0; i<strs.length; i++){
-        if(strs[i] != null && strs.type == 'window'){
-            if(withinPercent(curr.length, distance(curr.points[0], curr.points[curr.points.length-1])) < .001)
-                pts = [curr.points[0], curr.points[curr.points.length-1]];
-            else{
-                pts = curr.points;
-            }
-            var w = [];
-            for(var j=0; j<curr.windows.length; j++){
-                var curr_win = Stroke_List[curr.windows[j]];
-                w.push({window: {start: {x:curr_win.points[0].x, y:curr_win.points[0].y},
-                    end: {x:curr_win.points[curr_win.points.length-1].x, y:curr_win.points[curr_win.points.length-1].y}}})
-            }
-            output.push({type:curr.type, points:pts, windows:w});
-        }
-    }
-    var rec_s = [];
-
-    for(var i=0; i<strokes.length; i++){
-        if(strokes.removed == false){
-            rec_s.push({type:strokes.type, idnum:strokes.idnum, points:strokes.points, windows:strokes.windows});  
-        }
-    }
-    var n = ((north+180)%360)*(Math.PI/180);
-    n = parseFloat(n.toFixed(4));
-
-    var s = {model_id:id, model_name:name, owner:owner, north:n, scale:scale, items:output, recreation:rec_s};
     return JSON.stringify(s);
 }
 
