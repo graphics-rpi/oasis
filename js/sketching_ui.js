@@ -887,6 +887,11 @@ function sketching_ribbon_handler(event_str)
     /* TODO: insert a check for change before we do anything */
     if( did_change_happen() )
     {
+      // var wallfile = "", pathfile = "";
+      // if(Stroke_List.length > 0){
+      //   wallfile = exportStrokes('id1', 'testmodel', 'testuser', Rectangles, )
+      // }
+
       if($('#sketchpad').css('display') == 'none'){
         $.ajax(
         {
@@ -922,11 +927,12 @@ function sketching_ribbon_handler(event_str)
             paths_txt: ' '
           },
           async: false,
-          success: function()
+          success: function(data)
           {
             //alert("Saved model to session");
             // Call to update the model and redirect when done;
             update_3d_model(url);
+            //console.log(data);
           },
           error:function(){
             alert('failure');
@@ -940,17 +946,28 @@ function sketching_ribbon_handler(event_str)
         if( url == "../pages/3d_tab.php" && (hasWindows() || modelHasWindows()) ){
 
           busy_ajax("Generating 3D Model");
-
-
-          $.post('../php/task_remesh.php',
-          {
-            t_called : Math.floor( new Date().getTime() / 1000)
-          }, 
-          function()
-          {
-            // We put this here because of the delay in creating the model
+          var u = "";
+          if($('#sketchpad').css('display') == 'none'){
+            u = '../php/task_remesh.php';
+          }
+          else{
+            u = '../php/task_remesh_json.php';
+          }
+          
+          $.ajax({
+            type: "POST",
+            url: u,
+            data: {
+              t_called : Math.floor( new Date().getTime() / 1000)
+            },
+            success: function(data){
+              // We put this here because of the delay in creating the model
             // We leave the user a loading indicator and only change the page when it is ready
-            window.location = "../pages/3d_tab.php";
+              window.location = "../pages/3d_tab.php";
+            },
+            error:function(){
+              alert('failure');
+            }
           });
 
         }else{

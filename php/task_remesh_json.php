@@ -1,14 +1,7 @@
 <?php
 
-function debug_to_console( $data ) {
+echo 'hello';
 
-    if ( is_array( $data ) )
-        $output = "<script>console.log( 'Debug Objects: " . implode( ',', $data) . "' );</script>";
-    else
-        $output = "<script>console.log( 'Debug Objects: " . $data . "' );</script>";
-
-    echo $output;
-}
 
 error_log("task_remesh.php: Start");
 
@@ -87,10 +80,10 @@ if (!is_dir($model_folder_path))
   }
   // Create them at the same time
   $task_file = fopen($remesh_path.'task/'.$identifier.'.task', "w");
-  $wall_file = fopen($remesh_path.'wall/'.$identifier.'.wall', "w");
+  $wall_file = fopen($remesh_path.'wall/'.$identifier.'.json', "w");
 
   // The task file contains the args for run_remesh.sh command
-  $task_file_content  = $remesh_path.'wall/'.$identifier.".wall\n"; # Input file
+  $task_file_content  = $remesh_path.'wall/'.$identifier.".json\n"; # Input file
   $task_file_content  = $task_file_content.$model_folder_path;                         # Output folder
   fwrite($task_file,$task_file_content);
 
@@ -103,7 +96,7 @@ if (!is_dir($model_folder_path))
   // DEBUG: Forcing run remesher to run
   // ========================================
 
-  $wall_arg = $remesh_path.'wall/'.$identifier.".wall";
+  $wall_arg = $remesh_path.'wall/'.$identifier.".json";
   $out_arg  = $model_folder_path;
   error_log("task_remesh.php: wall_arg:".$wall_arg);
   error_log("task_remesh.php: out_arg:".$out_arg);
@@ -116,7 +109,7 @@ if (!is_dir($model_folder_path))
 
   $log = shell_exec('./run_remesher.sh '.$wall_arg.' '.$out_arg);
 
-  shell_exec('rm /var/www/user_task/remesh/wall/'.$identifier.'.wall');
+  shell_exec('rm /var/www/user_task/remesh/wall/'.$identifier.'.json');
   shell_exec('rm /var/www/user_task/remesh/task/'.$identifier.'.task');
   $t_ran =  time() - $t_before;
 

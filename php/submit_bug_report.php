@@ -5,6 +5,7 @@
 	require_once('user.php');
 	require_once('model.php');
 	
+	console.log('hello there');
 
 	// Script is called when a form is submited and needs to saved to the database
 	// Results of the forms are sent in the form of request
