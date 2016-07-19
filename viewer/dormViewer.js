@@ -26,8 +26,7 @@ function buildMultiviewer(){
     for(var key in modelsArray){
         var modelList = modelsArray[key].val;
         modelList.forEach(function(elm){
-            //console.debug(elm);
-            buildSingleViewer(elm);
+            buildSingleViewer(elm, key);
         });
     }
 
@@ -322,6 +321,7 @@ function updateSize()
 
 function dormLookup(dorm)
 {
+    console.log(dorm);
     switch(dorm){
         case 'barh':
             return 'BARH';
