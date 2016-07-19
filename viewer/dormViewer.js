@@ -22,7 +22,7 @@ function buildMultiviewer(){
     modelsArray.sort(function(a, b){
         return a.val.length - b.val.length;
     });
-    modelsArray.reverse();
+    
     for(var key in modelsArray){
         var modelList = modelsArray[key].val;
         modelList.forEach(function(elm){
