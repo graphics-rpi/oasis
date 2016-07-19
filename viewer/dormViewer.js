@@ -26,7 +26,7 @@ function buildMultiviewer(){
     for(var key in modelsArray){
         var modelList = modelsArray[key].val;
         modelList.forEach(function(elm){
-            buildSingleViewer(elm, key);
+            buildSingleViewer(elm, modelsArray[key].key);
         });
     }
 
