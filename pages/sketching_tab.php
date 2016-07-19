@@ -186,7 +186,7 @@
     <div id= "overlay" class="overlay"> </div>
 
     <!-- comment out this div to remove sketching functionality -->
-    <div class="modal fade in" id="chooseType" data-backdrop="static" data-keyboard="false" role="dialog"
+    <!--<div class="modal fade in" id="chooseType" data-backdrop="static" data-keyboard="false" role="dialog"
       tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -199,8 +199,7 @@
           </div>
         </div>
       </div>
-    </div>
-
+    </div>-->
     <div id="container-parent" class="sketch_tab_parent">
       <div id="maincontent">
           <div id="container"> 

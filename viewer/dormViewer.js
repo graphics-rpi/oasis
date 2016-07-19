@@ -8,14 +8,28 @@ var obj_format = 'NaN';
 
 function buildMultiviewer(){
 
-	//var models = getModelsToView();
-	var models = ['504', '514', 'fjgmwr', 'fmohhf', 'irrtir', 'kmlenc', 'ontmhz', 'qaswke', 'sumllb', 'suvnqf', 'tfcdgz', 'ukosnc', 'xdwqrh', 'xsucpj', 'yriocd'];
+	var models = getModelsToView();
+	//var models = ['504', '514', 'fjgmwr', 'fmohhf', 'irrtir', 'kmlenc', 'ontmhz', 'qaswke', 'sumllb', 'suvnqf', 'tfcdgz', 'ukosnc', 'xdwqrh', 'xsucpj', 'yriocd'];
 
+    var modelsArray = [];
 
-	models.forEach(function (elm) {
-			buildSingleViewer(elm);
-		}
-	);
+    for(var k in models){
+        if(models.hasOwnProperty(k)){
+            modelsArray.push({key: k, val:models[k]});
+        }
+    }
+
+    modelsArray.sort(function(a, b){
+        return a.val.length - b.val.length;
+    });
+    modelsArray.reverse();
+    for(var key in modelsArray){
+        var modelList = modelsArray[key].val;
+        modelList.forEach(function(elm){
+            //console.debug(elm);
+            buildSingleViewer(elm);
+        });
+    }
 
     renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
     renderer.setClearColor(0xffffff, 1);
@@ -29,7 +43,7 @@ function getModelsToView(){
 
 	$.ajax({
 		type: "POST",
-		url: "../dev_tools/getIncludedModels.php",
+		url: "getIncludedModels.php",
 		async: false,
 		success: function(e){
 			var json = JSON.parse(e);
@@ -59,7 +73,7 @@ function getModelTitle(myid){
     return path;
 }
 
-function buildSingleViewer(model){      
+function buildSingleViewer(model, dorm){      
     canvas = document.getElementById("c");
 
     var template = document.getElementById("template").text;
@@ -89,7 +103,7 @@ function buildSingleViewer(model){
                 
             var element = document.createElement("div");
             element.className = "list-item";
-            element.innerHTML = template.replace('$', model);
+            element.innerHTML = template.replace('$', dormLookup(dorm));
             console.log(template);
 
             scene.userData.element = element.querySelector(".scene");
@@ -303,5 +317,76 @@ function updateSize()
     if(canvas.width != width || canvas.height !=height)
     {
         renderer.setSize(width, height, false);
+    }
+}
+
+function dormLookup(dorm)
+{
+    switch(dorm){
+        case 'barh':
+            return 'BARH';
+            break;
+        case 'rahp_apt':
+            return 'RAHP B';
+            break;
+        case 'barton':
+            return 'Barton Hall';
+            break;
+        case 'blitman':
+            return 'Blitman Residence Commons';
+            break;
+        case 'bray':
+            return 'Bray Hall';
+            break;
+        case 'bryckwyck':
+            return 'Bryckwyck';
+            break;
+        case 'cary':
+            return 'Cary Hall';
+            break;
+        case 'colonie':
+            return 'Colonie Apartments';
+            break;
+        case 'commons':
+            return 'Commons';
+            break;
+        case 'crockett':
+            return 'Crockett Hall';
+            break;
+        case 'davison':
+            return 'Davison Hall';
+            break;
+        case 'e_complex':
+            return 'E-Complex';
+            break;
+        case 'hall':
+            return 'Hall Hall';
+            break;
+        case 'nason':
+            return 'Nason Hall';
+            break;
+        case 'north':
+            return 'North Hall';
+            break;
+        case 'nugent':
+            return 'Nugent Hall';
+            break;
+        case 'quad':
+            return 'Quadrangle (The Quad)';
+            break;
+        case 'sharp':
+            return 'Sharp Hall';
+            break;
+        case 'rahp_single':
+            return 'Single RAHP';
+            break;
+        case 'stacwyck':
+            return 'Stacwyck Apartments';
+            break;
+        case 'warren':
+            return 'Warren Hall';
+            break;
+        default:
+            return 'Other';
     }
 }
