@@ -44,7 +44,7 @@
             <p>No personal information is collected during the registration process. If you choose to provide an email address, 
             researchers may contact you with optional follow-up questions. We will not share this email with anyone.</p><br>
 
-            <p>For the next 2 weeks (June 15th - June 30th) we are offering the
+            <p>For the next few weeks we are offering the
             following incentive for current RPI students or recent RPI alums to
             participate in the study.  On June 30th we will have a random drawing
             for twenty $50 prepaid VISA gift cards.  Each user study participant
